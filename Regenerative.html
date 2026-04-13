@@ -1,0 +1,3224 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EV 회생제동 시스템 시뮬레이션</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
+<style>
+/* ═══ GLOBAL STYLES ═══ */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg-primary: #0a0a1a;
+  --bg-secondary: #0f0f2a;
+  --bg-card: #1a1a2e;
+  --bg-card2: #16213e;
+  --accent-green: #00ff88;
+  --accent-red: #ff4444;
+  --accent-blue: #4488ff;
+  --accent-yellow: #ffcc00;
+  --accent-orange: #ff8800;
+  --text-primary: #ffffff;
+  --text-secondary: #aaaacc;
+  --border-color: #2a2a4a;
+  --gradient-green: linear-gradient(135deg, #00ff88, #00cc66);
+  --gradient-blue: linear-gradient(135deg, #4488ff, #2255cc);
+  --gradient-red: linear-gradient(135deg, #ff4444, #cc2222);
+}
+
+html, body {
+  font-family: 'Segoe UI', 'Malgun Gothic', Arial, sans-serif;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* ═══ HEADER & NAV ═══ */
+.header {
+  background: linear-gradient(90deg, #0a0a1a, #1a1a3e, #0a0a1a);
+  border-bottom: 2px solid var(--accent-green);
+  padding: 12px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  box-shadow: 0 2px 20px rgba(0,255,136,0.2);
+}
+
+.header-title {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--accent-green);
+  text-shadow: 0 0 10px rgba(0,255,136,0.5);
+  letter-spacing: 1px;
+}
+
+.header-subtitle {
+  font-size: 0.7rem;
+  color: var(--text-secondary);
+  margin-top: 2px;
+}
+
+.nav-tabs {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.nav-btn {
+  padding: 8px 14px;
+  border: 1px solid var(--border-color);
+  background: var(--bg-card);
+  color: var(--text-secondary);
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.75rem;
+  font-weight: 600;
+  transition: all 0.3s;
+  white-space: nowrap;
+}
+
+.nav-btn:hover {
+  border-color: var(--accent-blue);
+  color: var(--accent-blue);
+  box-shadow: 0 0 10px rgba(68,136,255,0.3);
+}
+
+.nav-btn.active {
+  background: var(--gradient-green);
+  color: #000;
+  border-color: var(--accent-green);
+  box-shadow: 0 0 15px rgba(0,255,136,0.4);
+}
+
+/* ═══ MODULE CONTAINERS ═══ */
+.module {
+  display: none;
+  padding: 16px;
+  min-height: calc(100vh - 140px);
+  animation: fadeIn 0.3s ease;
+}
+
+.module.active { display: block; }
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ═══ LEARNING OBJECTIVE CARD ═══ */
+.learning-card {
+  background: linear-gradient(135deg, #0d1b2a, #1a2a3e);
+  border: 1px solid var(--accent-blue);
+  border-left: 4px solid var(--accent-green);
+  border-radius: 12px;
+  padding: 14px 18px;
+  margin-bottom: 16px;
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+}
+
+.learning-icon {
+  font-size: 1.8rem;
+  flex-shrink: 0;
+}
+
+.learning-title {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--accent-green);
+  margin-bottom: 6px;
+}
+
+.learning-list {
+  list-style: none;
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+  line-height: 1.7;
+}
+
+.learning-list li::before {
+  content: "▸ ";
+  color: var(--accent-blue);
+}
+
+/* ═══ GRID LAYOUTS ═══ */
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; }
+.grid-4 { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 10px; }
+
+@media (max-width: 1100px) {
+  .grid-2 { grid-template-columns: 1fr; }
+  .grid-3 { grid-template-columns: 1fr 1fr; }
+  .grid-4 { grid-template-columns: 1fr 1fr; }
+}
+
+@media (max-width: 768px) {
+  .grid-3 { grid-template-columns: 1fr; }
+  .grid-4 { grid-template-columns: 1fr 1fr; }
+  .header { flex-direction: column; gap: 10px; }
+  .nav-tabs { justify-content: center; }
+}
+
+/* ═══ CARDS ═══ */
+.card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 14px;
+  position: relative;
+}
+
+.card-title {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--accent-green);
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.card-title .icon { font-size: 1rem; }
+
+/* ═══ SLIDERS ═══ */
+.slider-group {
+  margin-bottom: 14px;
+}
+
+.slider-label {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+  font-size: 0.78rem;
+}
+
+.slider-name { color: var(--text-secondary); }
+
+.slider-value {
+  background: var(--bg-secondary);
+  border: 1px solid var(--accent-green);
+  color: var(--accent-green);
+  padding: 2px 10px;
+  border-radius: 6px;
+  font-weight: 700;
+  font-size: 0.8rem;
+  min-width: 80px;
+  text-align: center;
+}
+
+input[type="range"] {
+  width: 100%;
+  height: 6px;
+  background: linear-gradient(to right, var(--accent-green) var(--pct, 50%), #333 var(--pct, 50%));
+  border-radius: 3px;
+  outline: none;
+  cursor: pointer;
+  -webkit-appearance: none;
+}
+
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 18px;
+  height: 18px;
+  background: var(--accent-green);
+  border-radius: 50%;
+  cursor: pointer;
+  box-shadow: 0 0 8px rgba(0,255,136,0.6);
+  transition: transform 0.1s;
+}
+
+input[type="range"]::-webkit-slider-thumb:hover {
+  transform: scale(1.2);
+}
+
+.slider-hint {
+  font-size: 0.68rem;
+  color: var(--accent-yellow);
+  margin-top: 4px;
+  min-height: 16px;
+  transition: all 0.3s;
+}
+
+/* ═══ FORMULA BOX ═══ */
+.formula-box {
+  background: #0d0d1f;
+  border: 1px solid #3344aa;
+  border-radius: 10px;
+  padding: 12px;
+  font-size: 0.78rem;
+  margin-bottom: 10px;
+}
+
+.formula-title {
+  color: var(--accent-yellow);
+  font-weight: 700;
+  margin-bottom: 8px;
+  font-size: 0.8rem;
+}
+
+.formula-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 4px 0;
+  border-bottom: 1px solid #1a1a3e;
+  color: var(--text-secondary);
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.formula-row:last-child { border-bottom: none; }
+
+.formula-val {
+  color: var(--accent-green);
+  font-weight: 700;
+  font-size: 0.85rem;
+}
+
+/* ═══ CANVAS ANIMATION ═══ */
+.anim-canvas {
+  width: 100%;
+  height: 180px;
+  background: linear-gradient(180deg, #050510 60%, #0a1a0a 100%);
+  border-radius: 10px;
+  border: 1px solid var(--border-color);
+  display: block;
+}
+
+/* ═══ CHART CONTAINERS ═══ */
+.chart-wrap {
+  position: relative;
+  height: 160px;
+  margin-top: 8px;
+}
+
+.chart-wrap canvas { max-height: 160px; }
+
+/* ═══ BUTTON STYLES ═══ */
+.btn {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.8rem;
+  font-weight: 700;
+  transition: all 0.2s;
+  letter-spacing: 0.5px;
+}
+
+.btn-green {
+  background: var(--gradient-green);
+  color: #000;
+  box-shadow: 0 0 10px rgba(0,255,136,0.3);
+}
+
+.btn-green:hover { box-shadow: 0 0 20px rgba(0,255,136,0.6); transform: translateY(-1px); }
+
+.btn-blue {
+  background: var(--gradient-blue);
+  color: #fff;
+  box-shadow: 0 0 10px rgba(68,136,255,0.3);
+}
+
+.btn-blue:hover { box-shadow: 0 0 20px rgba(68,136,255,0.6); transform: translateY(-1px); }
+
+.btn-red {
+  background: var(--gradient-red);
+  color: #fff;
+}
+
+.btn-red:hover { box-shadow: 0 0 20px rgba(255,68,68,0.5); transform: translateY(-1px); }
+
+.btn-group { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
+
+.speed-btn {
+  padding: 7px 14px;
+  border: 1px solid var(--border-color);
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.78rem;
+  font-weight: 600;
+  transition: all 0.2s;
+}
+
+.speed-btn.active, .speed-btn:hover {
+  border-color: var(--accent-green);
+  color: var(--accent-green);
+  background: rgba(0,255,136,0.1);
+}
+
+/* ═══ TOGGLE SWITCH ═══ */
+.toggle-wrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.toggle {
+  position: relative;
+  width: 50px;
+  height: 26px;
+}
+
+.toggle input { opacity: 0; width: 0; height: 0; }
+
+.toggle-slider {
+  position: absolute;
+  inset: 0;
+  background: #333;
+  border-radius: 26px;
+  cursor: pointer;
+  transition: 0.3s;
+}
+
+.toggle-slider::before {
+  content: '';
+  position: absolute;
+  width: 20px; height: 20px;
+  left: 3px; bottom: 3px;
+  background: white;
+  border-radius: 50%;
+  transition: 0.3s;
+}
+
+.toggle input:checked + .toggle-slider { background: var(--accent-green); }
+.toggle input:checked + .toggle-slider::before { transform: translateX(24px); }
+
+.toggle-label { font-size: 0.82rem; color: var(--text-secondary); }
+
+/* ═══ SANKEY ═══ */
+.sankey-container {
+  width: 100%;
+  overflow-x: auto;
+}
+
+#sankeyCanvas {
+  display: block;
+  max-width: 100%;
+}
+
+/* ═══ GAUGE ═══ */
+.gauge-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+  font-size: 0.78rem;
+}
+
+.gauge-label { width: 90px; color: var(--text-secondary); text-align: right; flex-shrink: 0; }
+
+.gauge-bar-wrap {
+  flex: 1;
+  height: 14px;
+  background: #1a1a2e;
+  border-radius: 7px;
+  overflow: hidden;
+  border: 1px solid #2a2a4a;
+}
+
+.gauge-bar {
+  height: 100%;
+  border-radius: 7px;
+  transition: width 0.3s ease;
+  min-width: 2px;
+}
+
+.gauge-val { width: 60px; text-align: right; font-weight: 700; }
+
+/* ═══ VEHICLE ANIMATION ELEMENTS ═══ */
+.anim-overlay {
+  position: absolute;
+  top: 8px;
+  right: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: flex-end;
+}
+
+.mini-gauge {
+  background: rgba(0,0,0,0.7);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 5px 10px;
+  font-size: 0.7rem;
+  text-align: right;
+}
+
+.mini-gauge-val { color: var(--accent-green); font-weight: 700; font-size: 0.9rem; }
+
+/* ═══ MODULE 3 SPECIFICS ═══ */
+.optimal-zone {
+  background: rgba(0,255,136,0.1);
+  border: 2px dashed var(--accent-green);
+  border-radius: 10px;
+  padding: 10px 14px;
+  font-size: 0.8rem;
+  color: var(--accent-green);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+/* ═══ MODULE 4 - TABLE ═══ */
+.result-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8rem;
+  margin-top: 12px;
+}
+
+.result-table th {
+  background: #0d0d1f;
+  color: var(--accent-green);
+  padding: 10px 12px;
+  text-align: center;
+  border: 1px solid var(--border-color);
+  font-size: 0.78rem;
+}
+
+.result-table td {
+  padding: 9px 12px;
+  text-align: center;
+  border: 1px solid var(--border-color);
+  color: var(--text-secondary);
+}
+
+.result-table tr:nth-child(even) td { background: rgba(255,255,255,0.02); }
+.result-table tr.highlight td { color: var(--accent-green); background: rgba(0,255,136,0.08); }
+
+/* ═══ QUIZ ═══ */
+.quiz-card {
+  background: linear-gradient(135deg, #0d1a2e, #1a0d2e);
+  border: 1px solid #4466aa;
+  border-radius: 12px;
+  padding: 16px;
+  margin-top: 14px;
+}
+
+.quiz-title {
+  color: var(--accent-yellow);
+  font-weight: 700;
+  font-size: 0.88rem;
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.quiz-q {
+  color: var(--text-primary);
+  font-size: 0.85rem;
+  margin-bottom: 10px;
+  line-height: 1.5;
+}
+
+.quiz-options {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.quiz-opt {
+  padding: 8px 12px;
+  border: 1px solid var(--border-color);
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.8rem;
+  transition: all 0.2s;
+  text-align: left;
+}
+
+.quiz-opt:hover { border-color: var(--accent-blue); color: var(--accent-blue); }
+.quiz-opt.correct { border-color: var(--accent-green); color: var(--accent-green); background: rgba(0,255,136,0.15); }
+.quiz-opt.wrong { border-color: var(--accent-red); color: var(--accent-red); background: rgba(255,68,68,0.15); }
+
+.quiz-feedback {
+  font-size: 0.8rem;
+  padding: 8px;
+  border-radius: 8px;
+  display: none;
+  line-height: 1.5;
+}
+
+.quiz-feedback.show { display: block; }
+.quiz-feedback.ok { background: rgba(0,255,136,0.1); border: 1px solid var(--accent-green); color: var(--accent-green); }
+.quiz-feedback.fail { background: rgba(255,68,68,0.1); border: 1px solid var(--accent-red); color: var(--text-secondary); }
+
+/* ═══ BOTTOM STATUS BAR ═══ */
+.status-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: linear-gradient(90deg, #0a0a1a, #1a1a3e, #0a0a1a);
+  border-top: 1px solid var(--accent-blue);
+  padding: 8px 20px;
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  z-index: 999;
+}
+
+.status-concept {
+  color: var(--accent-green);
+  font-weight: 600;
+}
+
+.status-separator { color: var(--border-color); }
+
+/* ═══ HELP BUTTON & POPUP ═══ */
+.help-btn {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 24px;
+  height: 24px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--accent-blue);
+  border-radius: 50%;
+  color: var(--accent-blue);
+  font-size: 0.75rem;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  z-index: 10;
+}
+
+.help-btn:hover { background: var(--accent-blue); color: #fff; }
+
+.popup-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.8);
+  z-index: 2000;
+  align-items: center;
+  justify-content: center;
+}
+
+.popup-overlay.show { display: flex; }
+
+.popup-box {
+  background: var(--bg-card);
+  border: 1px solid var(--accent-blue);
+  border-top: 3px solid var(--accent-green);
+  border-radius: 16px;
+  padding: 24px;
+  max-width: 480px;
+  width: 90%;
+  animation: popIn 0.3s ease;
+}
+
+@keyframes popIn {
+  from { opacity: 0; transform: scale(0.9); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+.popup-title {
+  color: var(--accent-green);
+  font-weight: 700;
+  font-size: 1rem;
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.popup-content {
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+  line-height: 1.8;
+}
+
+.popup-formula {
+  background: #0d0d1f;
+  border: 1px solid #3344aa;
+  border-radius: 8px;
+  padding: 10px;
+  margin: 10px 0;
+  color: var(--accent-yellow);
+  font-family: monospace;
+  font-size: 0.85rem;
+}
+
+.popup-ref {
+  font-size: 0.72rem;
+  color: #6677aa;
+  margin-top: 8px;
+  font-style: italic;
+}
+
+.popup-close {
+  margin-top: 14px;
+  width: 100%;
+}
+
+/* ═══ PROGRESS / SOC BAR ═══ */
+.soc-bar-wrap {
+  margin: 8px 0;
+  background: #1a1a2e;
+  border-radius: 8px;
+  height: 22px;
+  overflow: hidden;
+  border: 1px solid #2a2a4a;
+  position: relative;
+}
+
+.soc-bar {
+  height: 100%;
+  background: linear-gradient(90deg, #00cc66, #00ff88);
+  border-radius: 8px;
+  transition: width 0.3s;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding-right: 8px;
+  font-size: 0.72rem;
+  color: #000;
+  font-weight: 700;
+}
+
+/* ═══ MODULE 4 SCENARIO ANIMATION ═══ */
+.scenario-canvas {
+  width: 100%;
+  height: 120px;
+  background: linear-gradient(180deg, #050518 50%, #0a1a08 100%);
+  border-radius: 10px;
+  border: 1px solid var(--border-color);
+  display: block;
+}
+
+/* ═══ MISC ═══ */
+.row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.col { display: flex; flex-direction: column; gap: 6px; }
+.mt-8 { margin-top: 8px; }
+.mt-12 { margin-top: 12px; }
+.mb-8 { margin-bottom: 8px; }
+.text-small { font-size: 0.75rem; color: var(--text-secondary); }
+.text-accent { color: var(--accent-green); font-weight: 700; }
+.text-red { color: var(--accent-red); }
+.text-blue { color: var(--accent-blue); }
+.text-yellow { color: var(--accent-yellow); }
+
+.badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 0.68rem;
+  font-weight: 700;
+}
+
+.badge-green { background: rgba(0,255,136,0.2); color: var(--accent-green); border: 1px solid var(--accent-green); }
+.badge-red { background: rgba(255,68,68,0.2); color: var(--accent-red); border: 1px solid var(--accent-red); }
+.badge-blue { background: rgba(68,136,255,0.2); color: var(--accent-blue); border: 1px solid var(--accent-blue); }
+
+.warning-box {
+  background: rgba(255,68,68,0.1);
+  border: 1px solid var(--accent-red);
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 0.78rem;
+  color: var(--accent-red);
+  display: none;
+}
+
+.warning-box.show { display: block; }
+
+.celebration {
+  display: none;
+  text-align: center;
+  font-size: 1.5rem;
+  animation: celebrate 0.5s ease;
+  padding: 10px;
+}
+
+.celebration.show { display: block; }
+
+@keyframes celebrate {
+  0% { transform: scale(0.5); opacity: 0; }
+  70% { transform: scale(1.2); }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+/* ═══ MODULE 2 COMPARISON ═══ */
+.compare-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+
+@media (max-width: 700px) {
+  .compare-grid { grid-template-columns: 1fr; }
+  .quiz-options { grid-template-columns: 1fr; }
+}
+
+.compare-card {
+  background: var(--bg-card);
+  border-radius: 12px;
+  padding: 14px;
+  border: 2px solid transparent;
+}
+
+.compare-card.regen { border-color: var(--accent-green); }
+.compare-card.noregen { border-color: var(--accent-red); }
+
+.compare-card-title {
+  font-size: 0.88rem;
+  font-weight: 700;
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* ═══ PADDING FOR FIXED BARS ═══ */
+.main-content { padding-bottom: 50px; }
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: var(--bg-primary); }
+::-webkit-scrollbar-thumb { background: #2a2a5a; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--accent-blue); }
+</style>
+</head>
+<body>
+
+<!-- ═══ HEADER ═══ -->
+<header class="header">
+  <div>
+    <div class="header-title">⚡ EV 회생제동 시스템 시뮬레이션</div>
+    <div class="header-subtitle">물리II 전자기 유도 · 에너지 보존 · 인터랙티브 학습</div>
+  </div>
+  <nav class="nav-tabs">
+    <button class="nav-btn active" onclick="showModule(1)">MODULE 1<br><span style="font-weight:400;font-size:0.65rem">역기전력&모터</span></button>
+    <button class="nav-btn" onclick="showModule(2)">MODULE 2<br><span style="font-weight:400;font-size:0.65rem">에너지흐름</span></button>
+    <button class="nav-btn" onclick="showModule(3)">MODULE 3<br><span style="font-weight:400;font-size:0.65rem">제동-승차감</span></button>
+    <button class="nav-btn" onclick="showModule(4)">MODULE 4<br><span style="font-weight:400;font-size:0.65rem">종합시뮬레이터</span></button>
+  </nav>
+</header>
+
+<div class="main-content">
+
+<!-- ═══════════════════════════════════════════════════
+     MODULE 1: 역기전력 & 모터 발전 시뮬레이터
+════════════════════════════════════════════════════ -->
+<div id="module1" class="module active">
+
+  <!-- 학습 목표 -->
+  <div class="learning-card">
+    <div class="learning-icon">🎯</div>
+    <div>
+      <div class="learning-title">MODULE 1 학습 목표 — 역기전력 & 모터 발전</div>
+      <ul class="learning-list">
+        <li>패러데이 법칙: 자속 변화 → 역기전력(E_back) 발생 원리 이해</li>
+        <li>차량 속도 ↔ 모터 각속도(ω_r) ↔ 역기전력의 비례 관계 확인</li>
+        <li>제동 강도에 따른 전류(I_phase)와 제동 토크(T_regen) 변화 관찰</li>
+        <li>회생제동 중 속도 감소 → 역기전력 감소 → 전류 감소 과정 추적</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="grid-2">
+
+    <!-- 좌측: 컨트롤 + 애니메이션 -->
+    <div class="col">
+
+      <!-- 슬라이더 컨트롤 -->
+      <div class="card">
+        <div class="card-title"><span class="icon">🎛️</span> 입력 파라미터</div>
+
+        <div class="slider-group">
+          <div class="slider-label">
+            <span class="slider-name">차량 초기 속도</span>
+            <span class="slider-value" id="m1-v-val">80 km/h</span>
+          </div>
+          <input type="range" id="m1-v" min="10" max="120" value="80" step="1"
+            oninput="updateM1Sliders()">
+          <div class="slider-hint" id="m1-v-hint">속도가 증가할수록 ω_r이 커져 역기전력도 증가합니다</div>
+        </div>
+
+        <div class="slider-group">
+          <div class="slider-label">
+            <span class="slider-name">제동 강도</span>
+            <span class="slider-value" id="m1-g-val">0.10 g</span>
+          </div>
+          <input type="range" id="m1-g" min="5" max="30" value="10" step="1"
+            oninput="updateM1Sliders()">
+          <div class="slider-hint" id="m1-g-hint">제동 강도가 높을수록 전류가 증가하고 토크도 커집니다</div>
+        </div>
+
+        <div class="slider-group">
+          <div class="slider-label">
+            <span class="slider-name">코일 감은 수 N</span>
+            <span class="slider-value" id="m1-n-val">200 회</span>
+          </div>
+          <input type="range" id="m1-n" min="50" max="500" value="200" step="10"
+            oninput="updateM1Sliders()">
+          <div class="slider-hint" id="m1-n-hint">코일 수가 많을수록 유도 기전력 ε = -N·dΦ/dt 가 커집니다</div>
+        </div>
+
+        <div class="row mt-8">
+          <button class="btn btn-green" id="m1-run-btn" onclick="toggleM1Sim()">▶ 시뮬레이션 시작</button>
+          <button class="btn btn-blue" onclick="resetM1()">↺ 초기화</button>
+        </div>
+
+        <div class="warning-box mt-8" id="m1-warning">
+          ⚠️ 배터리 SOC 100% 도달 — 회생제동 차단됨
+        </div>
+      </div>
+
+      <!-- 수식 박스 -->
+      <div class="formula-box">
+        <button class="help-btn" style="position:static;display:inline-flex;margin-bottom:6px;width:auto;padding:2px 8px;border-radius:6px;font-size:0.7rem;height:auto;" onclick="showPopup('faraday')">? 법칙 설명</button>
+        <div class="formula-title">📐 현재 계산 값</div>
+        <div class="formula-row">
+          <span>모터 각속도 ω_r</span>
+          <span class="formula-val" id="f-omega">— rad/s</span>
+        </div>
+        <div class="formula-row">
+          <span>역기전력 E_back = K_e × ω_r</span>
+          <span class="formula-val" id="f-eback">— V</span>
+        </div>
+        <div class="formula-row">
+          <span>유도 전류 I_phase</span>
+          <span class="formula-val" id="f-iph">— A</span>
+        </div>
+        <div class="formula-row">
+          <span>제동 토크 T_regen = K_e × I</span>
+          <span class="formula-val" id="f-tregen">— N·m</span>
+        </div>
+        <div class="formula-row">
+          <span>회생 전력 P_regen</span>
+          <span class="formula-val" id="f-pregen">— W</span>
+        </div>
+        <div class="formula-row">
+          <span>누적 회생 에너지 E_stored</span>
+          <span class="formula-val" id="f-estored">— Wh</span>
+        </div>
+        <div class="formula-row">
+          <span>현재 속도</span>
+          <span class="formula-val" id="f-vcur">— km/h</span>
+        </div>
+      </div>
+
+      <!-- 속도 & 배터리 게이지 -->
+      <div class="card">
+        <div class="card-title"><span class="icon">📊</span> 실시간 게이지</div>
+        <div class="gauge-row">
+          <span class="gauge-label">현재 속도</span>
+          <div class="gauge-bar-wrap">
+            <div class="gauge-bar" id="gauge-speed" style="width:67%;background:linear-gradient(90deg,#4488ff,#88bbff)"></div>
+          </div>
+          <span class="gauge-val text-blue" id="gauge-speed-val">80 km/h</span>
+        </div>
+        <div class="gauge-row">
+          <span class="gauge-label">역기전력</span>
+          <div class="gauge-bar-wrap">
+            <div class="gauge-bar" id="gauge-eback" style="width:50%;background:linear-gradient(90deg,#ffcc00,#ff8800)"></div>
+          </div>
+          <span class="gauge-val text-yellow" id="gauge-eback-val">— V</span>
+        </div>
+        <div class="gauge-row">
+          <span class="gauge-label">회생 전력</span>
+          <div class="gauge-bar-wrap">
+            <div class="gauge-bar" id="gauge-pregen" style="width:30%;background:linear-gradient(90deg,#00ff88,#00cc66)"></div>
+          </div>
+          <span class="gauge-val text-accent" id="gauge-pregen-val">— kW</span>
+        </div>
+        <div class="gauge-row">
+          <span class="gauge-label">배터리 SOC</span>
+          <div class="gauge-bar-wrap">
+            <div class="gauge-bar" id="gauge-soc" style="width:60%;background:linear-gradient(90deg,#00cc66,#00ff88)"></div>
+          </div>
+          <span class="gauge-val text-accent" id="gauge-soc-val">60%</span>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- 우측: 그래프들 -->
+    <div class="col">
+
+      <!-- 차량 애니메이션 -->
+      <div class="card" style="position:relative">
+        <div class="card-title"><span class="icon">🚗</span> 차량 회생제동 시각화</div>
+        <canvas id="m1-anim-canvas" class="anim-canvas" width="600" height="160"></canvas>
+      </div>
+
+      <!-- 속도 vs 시간 -->
+      <div class="card">
+        <div class="card-title">
+          <span class="icon">📉</span> 속도 vs 시간
+          <button class="help-btn" onclick="showPopup('speed')">?</button>
+        </div>
+        <div class="chart-wrap"><canvas id="m1-chart-speed"></canvas></div>
+      </div>
+
+      <!-- 역기전력 vs 시간 -->
+      <div class="card">
+        <div class="card-title">
+          <span class="icon">⚡</span> 역기전력 E_back vs 시간
+          <button class="help-btn" onclick="showPopup('backemf')">?</button>
+        </div>
+        <div class="chart-wrap"><canvas id="m1-chart-eback"></canvas></div>
+      </div>
+
+      <!-- 누적 에너지 vs 시간 -->
+      <div class="card">
+        <div class="card-title">
+          <span class="icon">🔋</span> 누적 회생 에너지 vs 시간
+          <button class="help-btn" onclick="showPopup('energy')">?</button>
+        </div>
+        <div class="chart-wrap"><canvas id="m1-chart-energy"></canvas></div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- 퀴즈 -->
+  <div class="quiz-card">
+    <div class="quiz-title">🧠 퀴즈 1</div>
+    <div class="quiz-q">Q1. 차량 속도가 2배가 되면 역기전력(E_back)은 어떻게 변할까요?</div>
+    <div class="quiz-options">
+      <button class="quiz-opt" onclick="answerQuiz('q1',0,'1b')">① 같다 (변화 없음)</button>
+      <button class="quiz-opt" onclick="answerQuiz('q1',1,'1b')">② 2배가 된다 ✓</button>
+      <button class="quiz-opt" onclick="answerQuiz('q1',2,'1b')">③ 4배가 된다</button>
+      <button class="quiz-opt" onclick="answerQuiz('q1',3,'1b')">④ √2배가 된다</button>
+    </div>
+    <div class="quiz-feedback" id="q1-feedback"></div>
+    <div class="celebration" id="q1-celebrate">🎉 정답! 훌륭합니다! 🎉</div>
+
+    <div class="quiz-title mt-8">🧠 퀴즈 2</div>
+    <div class="quiz-q">Q2. 회생제동 중 차량이 거의 정지할 때, 역기전력은 어떻게 될까요?</div>
+    <div class="quiz-options">
+      <button class="quiz-opt" onclick="answerQuiz('q2',0,'2b')">① 최대값을 유지한다</button>
+      <button class="quiz-opt" onclick="answerQuiz('q2',1,'2b')">② 0에 가까워진다 ✓</button>
+      <button class="quiz-opt" onclick="answerQuiz('q2',2,'2b')">③ 갑자기 증가한다</button>
+      <button class="quiz-opt" onclick="answerQuiz('q2',3,'2b')">④ 배터리 전압과 같아진다</button>
+    </div>
+    <div class="quiz-feedback" id="q2-feedback"></div>
+    <div class="celebration" id="q2-celebrate">🎉 정답! 완벽해요! 🎉</div>
+  </div>
+
+</div><!-- end module1 -->
+
+
+<!-- ═══════════════════════════════════════════════════
+     MODULE 2: 에너지 흐름 시각화 (Sankey)
+════════════════════════════════════════════════════ -->
+<div id="module2" class="module">
+
+  <div class="learning-card">
+    <div class="learning-icon">🎯</div>
+    <div>
+      <div class="learning-title">MODULE 2 학습 목표 — 에너지 흐름 & 보존 법칙</div>
+      <ul class="learning-list">
+        <li>운동에너지 KE = ½Mv²가 회생제동으로 전기에너지로 변환되는 과정</li>
+        <li>각 변환 단계별 에너지 손실 비율 이해 (모터→인버터→배터리→협조)</li>
+        <li>총 효율 η = 0.95×0.97×0.95×0.85 = 74.3% 계산 검증</li>
+        <li>회생제동 ON/OFF 비교로 에너지 절약 효과 정량적 파악</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- 속도 선택 + 토글 -->
+  <div class="card mb-8">
+    <div class="row">
+      <div class="card-title" style="margin:0"><span class="icon">⚙️</span> 시나리오 설정</div>
+      <div class="btn-group" style="margin:0">
+        <button class="speed-btn active" id="s2-30" onclick="selectM2Speed(30)">30 km/h</button>
+        <button class="speed-btn" id="s2-60" onclick="selectM2Speed(60)">60 km/h</button>
+        <button class="speed-btn" id="s2-100" onclick="selectM2Speed(100)">100 km/h</button>
+        <button class="speed-btn" id="s2-120" onclick="selectM2Speed(120)">120 km/h</button>
+      </div>
+      <div class="toggle-wrap" style="margin:0;margin-left:auto">
+        <label class="toggle">
+          <input type="checkbox" id="m2-toggle" checked onchange="updateM2()">
+          <span class="toggle-slider"></span>
+        </label>
+        <span class="toggle-label">회생제동 ON/OFF</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Sankey + 비교 -->
+  <div class="compare-grid">
+
+    <!-- 회생제동 ON -->
+    <div class="compare-card regen">
+      <div class="compare-card-title">
+        <span>🔋 회생제동 ON</span>
+        <span class="badge badge-green">에너지 회수</span>
+      </div>
+      <canvas id="sankey-on" width="480" height="340" style="width:100%;max-width:480px"></canvas>
+      <div class="formula-box mt-8">
+        <div class="formula-title">에너지 단계별 수치</div>
+        <div class="formula-row"><span>총 운동에너지 KE</span><span class="formula-val" id="m2-ke-on">— kJ</span></div>
+        <div class="formula-row"><span>모터 손실 (5%)</span><span class="formula-val text-red" id="m2-motor-loss">— kJ</span></div>
+        <div class="formula-row"><span>인버터 손실 (3%)</span><span class="formula-val text-red" id="m2-inv-loss">— kJ</span></div>
+        <div class="formula-row"><span>배터리 충전 손실 (5%)</span><span class="formula-val text-red" id="m2-bat-loss">— kJ</span></div>
+        <div class="formula-row"><span>협조제동 손실 (15%)</span><span class="formula-val text-red" id="m2-blend-loss">— kJ</span></div>
+        <div class="formula-row"><span>✅ 배터리 저장 (74.3%)</span><span class="formula-val" id="m2-stored">— kJ</span></div>
+      </div>
+    </div>
+
+    <!-- 회생제동 OFF -->
+    <div class="compare-card noregen">
+      <div class="compare-card-title">
+        <span>🔥 회생제동 OFF (일반 마찰제동)</span>
+        <span class="badge badge-red">100% 열 소산</span>
+      </div>
+      <canvas id="sankey-off" width="480" height="340" style="width:100%;max-width:480px"></canvas>
+      <div class="formula-box mt-8">
+        <div class="formula-title">에너지 단계별 수치</div>
+        <div class="formula-row"><span>총 운동에너지 KE</span><span class="formula-val" id="m2-ke-off">— kJ</span></div>
+        <div class="formula-row"><span>마찰열 소산 (100%)</span><span class="formula-val text-red" id="m2-heat-loss">— kJ</span></div>
+        <div class="formula-row"><span>배터리 저장 (0%)</span><span class="formula-val text-red">0 kJ</span></div>
+        <div class="formula-row"><span>⚠️ 절약 기회 손실</span><span class="formula-val text-red" id="m2-wasted">— kJ</span></div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- 효율 수식 -->
+  <div class="card mt-12">
+    <div class="card-title"><span class="icon">📐</span> 총 효율 계산</div>
+    <div class="formula-box" style="font-size:0.85rem;text-align:center">
+      <div style="color:#aaa;margin-bottom:6px">η_total = η_motor × η_inverter × η_battery × η_blending</div>
+      <div style="color:var(--accent-yellow);font-size:1.1rem;font-weight:700">= 0.95 × 0.97 × 0.95 × 0.85 = <span style="color:var(--accent-green)">74.3%</span></div>
+      <div style="color:#6677aa;font-size:0.72rem;margin-top:6px">Ref: Kim &amp; Park (2019), Xu et al. (2019)</div>
+    </div>
+    <div class="chart-wrap" style="height:180px">
+      <canvas id="m2-eff-chart" style="max-height:180px"></canvas>
+    </div>
+  </div>
+
+  <!-- 퀴즈 -->
+  <div class="quiz-card">
+    <div class="quiz-title">🧠 퀴즈 3</div>
+    <div class="quiz-q">Q3. 120km/h로 달리던 차가 완전 정지할 때, 회생제동을 사용하면 운동에너지의 약 몇 %를 배터리에 저장할 수 있을까요?</div>
+    <div class="quiz-options">
+      <button class="quiz-opt" onclick="answerQuiz('q3',0,'3b')">① 약 50%</button>
+      <button class="quiz-opt" onclick="answerQuiz('q3',1,'3b')">② 약 74% ✓</button>
+      <button class="quiz-opt" onclick="answerQuiz('q3',2,'3b')">③ 약 95%</button>
+      <button class="quiz-opt" onclick="answerQuiz('q3',3,'3b')">④ 약 100%</button>
+    </div>
+    <div class="quiz-feedback" id="q3-feedback"></div>
+    <div class="celebration" id="q3-celebrate">🎉 정답! 에너지 보존 법칙을 이해했군요! 🎉</div>
+
+    <div class="quiz-title mt-8">🧠 퀴즈 4</div>
+    <div class="quiz-q">Q4. 차량 속도가 2배(60→120km/h)가 될 때, 운동에너지(KE=½Mv²)는 몇 배가 될까요?</div>
+    <div class="quiz-options">
+      <button class="quiz-opt" onclick="answerQuiz('q4',0,'4b')">① 2배</button>
+      <button class="quiz-opt" onclick="answerQuiz('q4',1,'4b')">② √2배</button>
+      <button class="quiz-opt" onclick="answerQuiz('q4',2,'4b')">③ 4배 ✓</button>
+      <button class="quiz-opt" onclick="answerQuiz('q4',3,'4b')">④ 8배</button>
+    </div>
+    <div class="quiz-feedback" id="q4-feedback"></div>
+    <div class="celebration" id="q4-celebrate">🎉 정답! KE는 속도의 제곱에 비례합니다! 🎉</div>
+  </div>
+
+</div><!-- end module2 -->
+
+
+<!-- ═══════════════════════════════════════════════════
+     MODULE 3: 제동력 vs 승차감 최적화 분석기
+════════════════════════════════════════════════════ -->
+<div id="module3" class="module">
+
+  <div class="learning-card">
+    <div class="learning-icon">🎯</div>
+    <div>
+      <div class="learning-title">MODULE 3 학습 목표 — 제동력 vs 승차감 최적화</div>
+      <ul class="learning-list">
+        <li>로런츠 힘 F=ILB → 제동력(회생제동력 + 마찰제동력) 구성 이해</li>
+        <li>제동 강도 증가 → 에너지 회수율 증가 but 승차감 저하의 트레이드오프</li>
+        <li>저크(J = da/dt) 개념과 ISO 2631 승차감 기준(|J|≤2.5 m/s³)</li>
+        <li>Xu et al.(2019) 실험 데이터로 최적 제동 구간(0.10g~0.15g) 도출</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- 최적 구간 표시 -->
+  <div class="optimal-zone">
+    <span style="font-size:1.2rem">✅</span>
+    <div>
+      <strong>에너지-승차감 최적 구간: 0.10g ~ 0.15g</strong>
+      <div style="font-size:0.72rem;color:var(--text-secondary);margin-top:2px">회수율 47~61% + 승차감 5.1~6.2점 (허용 기준 이상)</div>
+    </div>
+  </div>
+
+  <div class="grid-2">
+
+    <!-- 좌측: 슬라이더 + 수치 -->
+    <div class="col">
+      <div class="card">
+        <div class="card-title"><span class="icon">🎛️</span> 회생제동 강도 조절</div>
+        <div class="slider-group">
+          <div class="slider-label">
+            <span class="slider-name">제동 강도 (g 단위)</span>
+            <span class="slider-value" id="m3-g-val">0.10 g</span>
+          </div>
+          <input type="range" id="m3-g" min="5" max="30" value="10" step="1"
+            oninput="updateM3()">
+          <div class="slider-hint" id="m3-g-hint">표준 구간(0.10g): 승차감과 효율의 균형점입니다</div>
+        </div>
+
+        <!-- 현재 수치 -->
+        <div class="formula-box">
+          <div class="formula-title">📊 현재 분석 결과</div>
+          <div class="formula-row">
+            <span>제동 감속도</span>
+            <span class="formula-val" id="m3-dec">— m/s²</span>
+          </div>
+          <div class="formula-row">
+            <span>회생제동력 (F_regen)</span>
+            <span class="formula-val" id="m3-f-regen">— kN</span>
+          </div>
+          <div class="formula-row">
+            <span>마찰제동력 (F_friction)</span>
+            <span class="formula-val" id="m3-f-fric">— kN</span>
+          </div>
+          <div class="formula-row">
+            <span>승차감 점수</span>
+            <span class="formula-val" id="m3-comfort">— / 7</span>
+          </div>
+          <div class="formula-row">
+            <span>에너지 회수율</span>
+            <span class="formula-val" id="m3-regen-rate">— %</span>
+          </div>
+          <div class="formula-row">
+            <span>저크 최대값 |J|</span>
+            <span class="formula-val" id="m3-jerk">— m/s³</span>
+          </div>
+          <div class="formula-row">
+            <span>ISO 2631 기준</span>
+            <span class="formula-val" id="m3-iso-status">—</span>
+          </div>
+        </div>
+
+        <!-- 로런츠 힘 설명 -->
+        <div class="card" style="background:#0d0d1f;border-color:#334">
+          <div class="card-title" style="font-size:0.78rem"><span class="icon">⚛️</span> 로런츠 힘 → 제동력</div>
+          <div style="font-size:0.75rem;color:var(--text-secondary);line-height:1.8">
+            <div>F = I × L × B <span style="color:#6677aa">(로런츠 힘 기본식)</span></div>
+            <div>T_regen = K_e × I_phase <span style="color:#6677aa">(제동 토크)</span></div>
+            <div>F_brake = T_regen × G_r / r_wheel</div>
+            <div style="margin-top:6px;color:var(--accent-yellow)">전류(I) ↑ → 제동력 ↑ → 더 빠른 감속</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 우측: 4분할 그래프 -->
+    <div class="col">
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-title" style="font-size:0.78rem">
+            <span class="icon">🔵</span> ① 제동력 구성
+            <button class="help-btn" onclick="showPopup('lorentz')">?</button>
+          </div>
+          <div class="chart-wrap" style="height:150px"><canvas id="m3-chart-force" style="max-height:150px"></canvas></div>
+        </div>
+        <div class="card">
+          <div class="card-title" style="font-size:0.78rem">
+            <span class="icon">😊</span> ② 승차감 점수
+            <button class="help-btn" onclick="showPopup('comfort')">?</button>
+          </div>
+          <div class="chart-wrap" style="height:150px"><canvas id="m3-chart-comfort" style="max-height:150px"></canvas></div>
+        </div>
+        <div class="card">
+          <div class="card-title" style="font-size:0.78rem">
+            <span class="icon">⚡</span> ③ 에너지 회수율
+            <button class="help-btn" onclick="showPopup('regenrate')">?</button>
+          </div>
+          <div class="chart-wrap" style="height:150px"><canvas id="m3-chart-regen" style="max-height:150px"></canvas></div>
+        </div>
+        <div class="card">
+          <div class="card-title" style="font-size:0.78rem">
+            <span class="icon">📳</span> ④ 저크(J) 분석
+            <button class="help-btn" onclick="showPopup('jerk')">?</button>
+          </div>
+          <div class="chart-wrap" style="height:150px"><canvas id="m3-chart-jerk" style="max-height:150px"></canvas></div>
+          <div class="warning-box mt-8" id="m3-jerk-warning">⚠️ ISO 2631 초과! 불쾌한 승차감</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- 퀴즈 -->
+  <div class="quiz-card">
+    <div class="quiz-title">🧠 퀴즈 5</div>
+    <div class="quiz-q">Q5. 제동 강도를 0.05g에서 0.25g으로 높이면 에너지 회수율과 승차감은 각각 어떻게 변할까요?</div>
+    <div class="quiz-options">
+      <button class="quiz-opt" onclick="answerQuiz('q5',0,'5b')">① 회수율↑, 승차감↑</button>
+      <button class="quiz-opt" onclick="answerQuiz('q5',1,'5b')">② 회수율↑, 승차감↓ ✓</button>
+      <button class="quiz-opt" onclick="answerQuiz('q5',2,'5b')">③ 회수율↓, 승차감↑</button>
+      <button class="quiz-opt" onclick="answerQuiz('q5',3,'5b')">④ 둘 다 변화 없음</button>
+    </div>
+    <div class="quiz-feedback" id="q5-feedback"></div>
+    <div class="celebration" id="q5-celebrate">🎉 정답! 트레이드오프 관계를 이해했군요! 🎉</div>
+
+    <div class="quiz-title mt-8">🧠 퀴즈 6</div>
+    <div class="quiz-q">Q6. 저크(Jerk, J = da/dt)가 커지면 승차감이 나빠지는 이유는?</div>
+    <div class="quiz-options">
+      <button class="quiz-opt" onclick="answerQuiz('q6',0,'6b')">① 속도가 너무 빠르기 때문</button>
+      <button class="quiz-opt" onclick="answerQuiz('q6',1,'6b')">② 가속도 변화율이 커서 몸이 앞뒤로 흔들리기 때문 ✓</button>
+      <button class="quiz-opt" onclick="answerQuiz('q6',2,'6b')">③ 배터리가 과충전되기 때문</button>
+      <button class="quiz-opt" onclick="answerQuiz('q6',3,'6b')">④ 모터 온도가 올라가기 때문</button>
+    </div>
+    <div class="quiz-feedback" id="q6-feedback"></div>
+    <div class="celebration" id="q6-celebrate">🎉 정답! ISO 2631 기준을 이해했습니다! 🎉</div>
+  </div>
+
+</div><!-- end module3 -->
+
+
+<!-- ═══════════════════════════════════════════════════
+     MODULE 4: 종합 주행 시뮬레이터
+════════════════════════════════════════════════════ -->
+<div id="module4" class="module">
+
+  <div class="learning-card">
+    <div class="learning-icon">🎯</div>
+    <div>
+      <div class="learning-title">MODULE 4 학습 목표 — 종합 주행 시뮬레이터</div>
+      <ul class="learning-list">
+        <li>실제 도심/고속도로 주행에서 회생제동 전략별 에너지 회수량 비교</li>
+        <li>배터리 SOC(State of Charge) 변화 추이와 주행 거리 연장 효과</li>
+        <li>전략별(소극적/표준/적극적/원페달) 최종 성능 수치 비교 분석</li>
+        <li>모든 물리 개념(패러데이→로런츠→에너지보존)의 종합 적용</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="grid-2">
+
+    <!-- 좌측: 시나리오 + 전략 선택 -->
+    <div class="col">
+      <div class="card">
+        <div class="card-title"><span class="icon">🗺️</span> 주행 시나리오 선택</div>
+        <div class="btn-group">
+          <button class="speed-btn active" id="sc-1" onclick="selectScenario(1)">① 도심 주행<br><span style="font-size:0.65rem;color:#6677aa">신호등 5회, 30km/h</span></button>
+          <button class="speed-btn" id="sc-2" onclick="selectScenario(2)">② 고속도로<br><span style="font-size:0.65rem;color:#6677aa">감속 2회, 90km/h</span></button>
+          <button class="speed-btn" id="sc-3" onclick="selectScenario(3)">③ 서울 도심<br><span style="font-size:0.65rem;color:#6677aa">Ko et al. (2014)</span></button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title"><span class="icon">🎯</span> 회생제동 전략 선택</div>
+        <div class="btn-group" style="flex-direction:column;gap:8px">
+          <button class="speed-btn active" id="str-0" onclick="selectStrategy(0)">① 소극적 (0.05g) — 최고 승차감 6.8/7</button>
+          <button class="speed-btn" id="str-1" onclick="selectStrategy(1)">② 표준 (0.10g) — 균형 6.2/7</button>
+          <button class="speed-btn" id="str-2" onclick="selectStrategy(2)">③ 적극적 (0.15g) — 효율 우선 5.1/7</button>
+          <button class="speed-btn" id="str-3" onclick="selectStrategy(3)">④ 원-페달 (0.25g) — 최대 회수 2.1/7</button>
+        </div>
+
+        <div class="row mt-8">
+          <button class="btn btn-green" onclick="runM4Sim()">▶ 시뮬레이션 실행</button>
+          <button class="btn btn-blue" onclick="runAllM4()">🔄 전략 전체 비교</button>
+        </div>
+      </div>
+
+      <!-- 실시간 수치 -->
+      <div class="formula-box">
+        <div class="formula-title">🚗 실시간 주행 데이터</div>
+        <div class="formula-row"><span>현재 속도</span><span class="formula-val" id="m4-v-cur">— km/h</span></div>
+        <div class="formula-row"><span>현재 상태</span><span class="formula-val" id="m4-state">대기중</span></div>
+        <div class="formula-row"><span>누적 회생 에너지</span><span class="formula-val" id="m4-regen-e">— Wh</span></div>
+        <div class="formula-row"><span>배터리 SOC</span><span class="formula-val" id="m4-soc">60.0 %</span></div>
+        <div class="formula-row"><span>누적 거리</span><span class="formula-val" id="m4-dist">0.0 km</span></div>
+        <div class="formula-row"><span>경과 시간</span><span class="formula-val" id="m4-time">0.0 s</span></div>
+      </div>
+
+      <!-- SOC 바 -->
+      <div class="card">
+        <div class="card-title"><span class="icon">🔋</span> 배터리 SOC</div>
+        <div class="soc-bar-wrap">
+          <div class="soc-bar" id="m4-soc-bar" style="width:60%">60%</div>
+        </div>
+        <div style="font-size:0.72rem;color:var(--text-secondary);margin-top:4px">초기 SOC: 60% | 용량: 75 kWh</div>
+      </div>
+    </div>
+
+    <!-- 우측: 애니메이션 + 그래프 -->
+    <div class="col">
+
+      <!-- 도로 애니메이션 -->
+      <div class="card">
+        <div class="card-title"><span class="icon">🛣️</span> 주행 경로 시각화</div>
+        <canvas id="m4-road-canvas" class="scenario-canvas" width="600" height="120"></canvas>
+      </div>
+
+      <!-- 속도-시간 프로파일 -->
+      <div class="card">
+        <div class="card-title"><span class="icon">📈</span> 속도-시간 프로파일
+          <span style="font-size:0.7rem;color:#6677aa;margin-left:8px">🔵가속 🟢감속(회생) ⬜정지</span>
+        </div>
+        <div class="chart-wrap" style="height:170px"><canvas id="m4-chart-speed" style="max-height:170px"></canvas></div>
+      </div>
+
+      <!-- SOC 변화 그래프 -->
+      <div class="card">
+        <div class="card-title"><span class="icon">🔋</span> 누적 배터리 SOC 변화</div>
+        <div class="chart-wrap" style="height:150px"><canvas id="m4-chart-soc" style="max-height:150px"></canvas></div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- 결과 비교 테이블 -->
+  <div class="card mt-12" id="m4-result-section" style="display:none">
+    <div class="card-title"><span class="icon">📋</span> 전략별 최종 성능 비교 테이블</div>
+    <div style="overflow-x:auto">
+      <table class="result-table" id="m4-result-table">
+        <thead>
+          <tr>
+            <th>전략</th>
+            <th>제동강도</th>
+            <th>회생에너지</th>
+            <th>SOC 변화</th>
+            <th>주행 연장</th>
+            <th>승차감</th>
+            <th>ISO 기준</th>
+          </tr>
+        </thead>
+        <tbody id="m4-table-body"></tbody>
+      </table>
+    </div>
+    <div style="font-size:0.72rem;color:#6677aa;margin-top:8px">* 주행 연장: 배터리 75kWh, 효율 5km/kWh 기준</div>
+  </div>
+
+  <!-- 퀴즈 -->
+  <div class="quiz-card">
+    <div class="quiz-title">🧠 퀴즈 7</div>
+    <div class="quiz-q">Q7. 도심 주행에서 원-페달 제동(0.25g)이 표준(0.10g)보다 에너지를 더 많이 회수하지만 선호되지 않는 주된 이유는?</div>
+    <div class="quiz-options">
+      <button class="quiz-opt" onclick="answerQuiz('q7',0,'7b')">① 모터가 과열되기 때문</button>
+      <button class="quiz-opt" onclick="answerQuiz('q7',1,'7b')">② 승차감이 크게 저하(저크↑)되어 탑승자가 불편하기 때문 ✓</button>
+      <button class="quiz-opt" onclick="answerQuiz('q7',2,'7b')">③ 배터리가 과충전되기 때문</button>
+      <button class="quiz-opt" onclick="answerQuiz('q7',3,'7b')">④ 회수 에너지가 오히려 줄어들기 때문</button>
+    </div>
+    <div class="quiz-feedback" id="q7-feedback"></div>
+    <div class="celebration" id="q7-celebrate">🎉 정답! 공학적 트레이드오프를 이해했습니다! 🎉</div>
+
+    <div class="quiz-title mt-8">🧠 퀴즈 8</div>
+    <div class="quiz-q">Q8. 회생제동의 핵심 원리인 "발전기 원리"에서, 운동에너지는 주로 어떤 에너지로 변환되어 배터리에 저장될까요?</div>
+    <div class="quiz-options">
+      <button class="quiz-opt" onclick="answerQuiz('q8',0,'8b')">① 열에너지</button>
+      <button class="quiz-opt" onclick="answerQuiz('q8',1,'8b')">② 빛에너지</button>
+      <button class="quiz-opt" onclick="answerQuiz('q8',2,'8b')">③ 전기에너지 ✓</button>
+      <button class="quiz-opt" onclick="answerQuiz('q8',3,'8b')">④ 화학에너지 직접 변환</button>
+    </div>
+    <div class="quiz-feedback" id="q8-feedback"></div>
+    <div class="celebration" id="q8-celebrate">🎉 정답! 패러데이 법칙의 핵심을 파악했습니다! 🎉</div>
+  </div>
+
+</div><!-- end module4 -->
+
+</div><!-- end main-content -->
+
+<!-- ═══ BOTTOM STATUS BAR ═══ -->
+<div class="status-bar">
+  <span>⚡</span>
+  <span class="status-concept" id="status-concept">패러데이 법칙</span>
+  <span class="status-separator">|</span>
+  <span id="status-text">전자기 유도: 자속 변화 dΦ/dt → 역기전력 ε 발생 → 전류 → 제동 토크</span>
+</div>
+
+<!-- ═══ POPUP OVERLAY ═══ -->
+<div class="popup-overlay" id="popup-overlay" onclick="closePopup(event)">
+  <div class="popup-box" id="popup-box">
+    <div class="popup-title" id="popup-title">설명</div>
+    <div class="popup-content" id="popup-content"></div>
+    <div class="popup-ref" id="popup-ref"></div>
+    <button class="btn btn-blue popup-close" onclick="document.getElementById('popup-overlay').classList.remove('show')">닫기</button>
+  </div>
+</div>
+
+<script>
+/* ═══════════════════════════════════════════════════════
+   PHYSICS CONSTANTS & PARAMETERS
+   Ref: Kim & Park (2019), Xu et al. (2019), Ko et al. (2014)
+════════════════════════════════════════════════════════ */
+
+const PHYSICS = {
+  K_e: 0.048,          // 역기전력 상수 (V·s/rad) — Kim & Park (2019)
+  G_r: 8.2,            // 감속비 (무차원)
+  r_wheel: 0.316,      // 타이어 반경 (m)
+  R_copper: 0.15,      // 동손 저항 (Ω)
+  eta_motor: 0.95,     // 모터 효율
+  eta_inverter: 0.97,  // 인버터 효율
+  eta_battery: 0.95,   // 배터리 충전 효율
+  eta_blending: 0.85,  // 협조제동 효율
+  eta_total: 0.95 * 0.97 * 0.95 * 0.85, // ≈ 0.7428
+  M_vehicle: 1800,     // 차량 질량 (kg)
+  V_bus: 360,          // 배터리 전압 (V)
+  dt: 0.01,            // 시간 간격 (s)
+  g: 9.81,             // 중력가속도 (m/s²)
+  BAT_CAPACITY_WH: 75000, // 배터리 용량 75kWh
+  INIT_SOC: 0.60,      // 초기 SOC 60%
+};
+
+// Xu et al.(2019) 승차감-회생 데이터
+const XU_DATA = {
+  deceleration:   [0.05, 0.10, 0.15, 0.20, 0.25], // g 단위
+  comfort_score:  [6.8,  6.2,  5.1,  3.7,  2.1],  // 7점 척도
+  regen_rate:     [0.28, 0.47, 0.61, 0.71, 0.78],  // 회수율
+};
+
+// 회생제동 전략 정의
+const STRATEGIES = [
+  { name: '소극적',   g: 0.05, label: '소극적 (0.05g)', comfort: 6.8, regen: 0.28 },
+  { name: '표준',     g: 0.10, label: '표준 (0.10g)',   comfort: 6.2, regen: 0.47 },
+  { name: '적극적',   g: 0.15, label: '적극적 (0.15g)', comfort: 5.1, regen: 0.61 },
+  { name: '원-페달',  g: 0.25, label: '원-페달 (0.25g)',comfort: 2.1, regen: 0.78 },
+];
+
+/* ═══════════════════════════════════════════════════════
+   UTILITY FUNCTIONS
+════════════════════════════════════════════════════════ */
+
+// 선형 보간
+function lerp(arr_x, arr_y, x) {
+  if (x <= arr_x[0]) return arr_y[0];
+  if (x >= arr_x[arr_x.length-1]) return arr_y[arr_y.length-1];
+  for (let i = 0; i < arr_x.length-1; i++) {
+    if (x >= arr_x[i] && x <= arr_x[i+1]) {
+      const t = (x - arr_x[i]) / (arr_x[i+1] - arr_x[i]);
+      return arr_y[i] + t * (arr_y[i+1] - arr_y[i]);
+    }
+  }
+  return arr_y[arr_y.length-1];
+}
+
+// 슬라이더 배경 업데이트
+function updateSliderBG(el) {
+  const min = parseFloat(el.min), max = parseFloat(el.max), val = parseFloat(el.value);
+  const pct = ((val - min) / (max - min)) * 100;
+  el.style.setProperty('--pct', pct + '%');
+}
+
+// 숫자 포맷
+const fmt = (n, d=1) => isNaN(n) ? '—' : n.toFixed(d);
+const fmtK = (n, d=1) => isNaN(n) ? '—' : (n/1000).toFixed(d);
+
+/* ═══════════════════════════════════════════════════════
+   PHYSICS CALCULATIONS
+════════════════════════════════════════════════════════ */
+
+// 역기전력 계산 — Ref: Kim & Park (2019)
+// E_back = K_e × ω_r = K_e × (v × G_r) / r_wheel
+function calcBackEMF(v_ms) {
+  if (v_ms <= 0) return 0;
+  const omega_r = (v_ms * PHYSICS.G_r) / PHYSICS.r_wheel;
+  return PHYSICS.K_e * omega_r;
+}
+
+// 모터 각속도
+function calcOmega(v_ms) {
+  return (v_ms * PHYSICS.G_r) / PHYSICS.r_wheel;
+}
+
+// 유도 전류 — 역기전력 / (배터리전압에서 역기전력 차이 기반)
+function calcIphase(E_back) {
+  if (E_back <= 0) return 0;
+  const dV = Math.max(0, PHYSICS.V_bus - E_back);
+  return dV / (PHYSICS.R_copper + 0.5);
+}
+
+// 회생 전력 계산
+// P_regen = E_back × I × cos(φ) - P_loss
+function calcPregen(v_ms) {
+  if (v_ms <= 0) return 0;
+  const E_back = calcBackEMF(v_ms);
+  const I = calcIphase(E_back);
+  const P_loss = I * I * PHYSICS.R_copper + 200 + 150; // 동손 + 철손 + 스위칭손
+  const P_raw = E_back * I * 0.95; // cos(φ) ≈ 0.95
+  return Math.max(0, P_raw - P_loss) * PHYSICS.eta_inverter * PHYSICS.eta_battery;
+}
+
+// 제동 토크
+function calcTregen(I_phase) {
+  return PHYSICS.K_e * I_phase;
+}
+
+/* ═══════════════════════════════════════════════════════
+   MODULE 1 — STATE & CHARTS
+════════════════════════════════════════════════════════ */
+let m1State = {
+  running: false,
+  t: 0,
+  v: 80/3.6,
+  v0: 80/3.6,
+  decel: 0.10 * 9.81,
+  N: 200,
+  SOC: PHYSICS.INIT_SOC,
+  E_stored: 0,
+  timeData: [],
+  speedData: [],
+  ebackData: [],
+  energyData: [],
+  animFrame: null,
+  carX: 50,
+  wheelAngle: 0,
+};
+
+let m1Charts = {};
+
+function initM1Charts() {
+  const commonOpts = {
+    responsive: true, maintainAspectRatio: false,
+    animation: { duration: 0 },
+    plugins: { legend: { display: true, labels: { color:'#aaa', font:{size:10} } } },
+    scales: {
+      x: { ticks: { color:'#888', font:{size:9} }, grid: { color:'#1a1a3a' }, title:{display:true,color:'#666',font:{size:9}} },
+      y: { ticks: { color:'#888', font:{size:9} }, grid: { color:'#1a1a3a' } }
+    }
+  };
+
+  m1Charts.speed = new Chart(document.getElementById('m1-chart-speed'), {
+    type: 'line',
+    data: {
+      labels: [],
+      datasets: [{
+        label: '속도 (km/h)',
+        data: [],
+        borderColor: '#4488ff',
+        backgroundColor: 'rgba(68,136,255,0.1)',
+        borderWidth: 2,
+        pointRadius: 0,
+        fill: true
+      }]
+    },
+    options: {
+      ...commonOpts,
+      scales: {
+        ...commonOpts.scales,
+        x: { ...commonOpts.scales.x, title:{display:true,text:'시간 (s)',color:'#666',font:{size:9}} },
+        y: { ...commonOpts.scales.y, title:{display:true,text:'속도 (km/h)',color:'#666',font:{size:9}}, min:0 }
+      }
+    }
+  });
+
+  m1Charts.eback = new Chart(document.getElementById('m1-chart-eback'), {
+    type: 'line',
+    data: {
+      labels: [],
+      datasets: [{
+        label: '역기전력 E_back (V)',
+        data: [],
+        borderColor: '#ffcc00',
+        backgroundColor: 'rgba(255,204,0,0.1)',
+        borderWidth: 2,
+        pointRadius: 0,
+        fill: true
+      }]
+    },
+    options: {
+      ...commonOpts,
+      scales: {
+        ...commonOpts.scales,
+        x: { ...commonOpts.scales.x, title:{display:true,text:'시간 (s)',color:'#666',font:{size:9}} },
+        y: { ...commonOpts.scales.y, title:{display:true,text:'E_back (V)',color:'#666',font:{size:9}}, min:0 }
+      }
+    }
+  });
+
+  m1Charts.energy = new Chart(document.getElementById('m1-chart-energy'), {
+    type: 'line',
+    data: {
+      labels: [],
+      datasets: [{
+        label: '누적 회생 에너지 (Wh)',
+        data: [],
+        borderColor: '#00ff88',
+        backgroundColor: 'rgba(0,255,136,0.1)',
+        borderWidth: 2,
+        pointRadius: 0,
+        fill: true
+      }]
+    },
+    options: {
+      ...commonOpts,
+      scales: {
+        ...commonOpts.scales,
+        x: { ...commonOpts.scales.x, title:{display:true,text:'시간 (s)',color:'#666',font:{size:9}} },
+        y: { ...commonOpts.scales.y, title:{display:true,text:'에너지 (Wh)',color:'#666',font:{size:9}}, min:0 }
+      }
+    }
+  });
+}
+
+function updateM1Sliders() {
+  const vSlider = document.getElementById('m1-v');
+  const gSlider = document.getElementById('m1-g');
+  const nSlider = document.getElementById('m1-n');
+
+  updateSliderBG(vSlider);
+  updateSliderBG(gSlider);
+  updateSliderBG(nSlider);
+
+  const v_kmh = parseFloat(vSlider.value);
+  const g_frac = parseFloat(gSlider.value) / 100;
+  const N = parseFloat(nSlider.value);
+
+  document.getElementById('m1-v-val').textContent = v_kmh + ' km/h';
+  document.getElementById('m1-g-val').textContent = g_frac.toFixed(2) + ' g';
+  document.getElementById('m1-n-val').textContent = N + ' 회';
+
+  // 힌트 업데이트
+  const hints = {
+    'v': v_kmh > 80 ? '속도가 높을수록 역기전력과 회생 전력이 크게 증가합니다'
+                     : v_kmh > 40 ? '속도가 증가할수록 ω_r이 커져 역기전력도 증가합니다'
+                     : '낮은 속도에서는 역기전력이 작아 회수 효율이 낮습니다',
+    'g': g_frac > 0.20 ? '강한 제동: 전류↑ 토크↑ 하지만 승차감이 나빠집니다'
+                       : g_frac > 0.10 ? '제동 강도가 높을수록 전류가 증가하고 토크도 커집니다'
+                       : '부드러운 제동: 승차감 우수, 회수율은 낮습니다',
+    'n': N > 300 ? '코일 수 증가 → 유도 기전력 ε = -N·dΦ/dt 가 크게 증가합니다'
+                : '코일 수(N)가 많을수록 유도 기전력 ε = -N·dΦ/dt 가 커집니다'
+  };
+  document.getElementById('m1-v-hint').textContent = hints.v;
+  document.getElementById('m1-g-hint').textContent = hints.g;
+  document.getElementById('m1-n-hint').textContent = hints.n;
+
+  // 현재 상태 업데이트 (시뮬레이션 미실행 시)
+  if (!m1State.running) {
+    const v_ms = v_kmh / 3.6;
+    updateM1Display(v_ms, g_frac, N);
+  }
+}
+
+function updateM1Display(v_ms, g_frac, N) {
+  if (v_ms < 0) v_ms = 0;
+  const omega_r = calcOmega(v_ms);
+  const E_back = calcBackEMF(v_ms);
+  const I_phase = calcIphase(E_back);
+  const T_regen = calcTregen(I_phase);
+  const P_regen = calcPregen(v_ms);
+
+  document.getElementById('f-omega').textContent = fmt(omega_r, 1) + ' rad/s';
+  document.getElementById('f-eback').textContent = fmt(E_back, 1) + ' V';
+  document.getElementById('f-iph').textContent = fmt(I_phase, 1) + ' A';
+  document.getElementById('f-tregen').textContent = fmt(T_regen, 1) + ' N·m';
+  document.getElementById('f-pregen').textContent = fmt(P_regen, 0) + ' W';
+  document.getElementById('f-estored').textContent = fmt(m1State.E_stored, 3) + ' Wh';
+  document.getElementById('f-vcur').textContent = fmt(v_ms * 3.6, 1) + ' km/h';
+
+  // 게이지
+  document.getElementById('gauge-speed').style.width = Math.min(100,(v_ms*3.6/120)*100) + '%';
+  document.getElementById('gauge-speed-val').textContent = fmt(v_ms*3.6,1) + ' km/h';
+
+  const E_max = calcBackEMF(120/3.6);
+  document.getElementById('gauge-eback').style.width = Math.min(100,(E_back/E_max)*100) + '%';
+  document.getElementById('gauge-eback-val').textContent = fmt(E_back,1) + ' V';
+
+  const P_max = 80000;
+  document.getElementById('gauge-pregen').style.width = Math.min(100,(P_regen/P_max)*100) + '%';
+  document.getElementById('gauge-pregen-val').textContent = fmt(P_regen/1000,2) + ' kW';
+
+  document.getElementById('gauge-soc').style.width = Math.min(100,m1State.SOC*100) + '%';
+  document.getElementById('gauge-soc-val').textContent = fmt(m1State.SOC*100,1) + '%';
+
+  // SOC 초과 경고
+  if (m1State.SOC >= 1.0) {
+    document.getElementById('m1-warning').classList.add('show');
+  } else {
+    document.getElementById('m1-warning').classList.remove('show');
+  }
+}
+
+function toggleM1Sim() {
+  if (m1State.running) {
+    stopM1Sim();
+  } else {
+    startM1Sim();
+  }
+}
+
+function startM1Sim() {
+  const v_kmh = parseFloat(document.getElementById('m1-v').value);
+  const g_frac = parseFloat(document.getElementById('m1-g').value) / 100;
+  const N = parseFloat(document.getElementById('m1-n').value);
+
+  m1State.v0 = v_kmh / 3.6;
+  m1State.v = v_kmh / 3.6;
+  m1State.decel = g_frac * PHYSICS.g;
+  m1State.N = N;
+  m1State.t = 0;
+  m1State.SOC = PHYSICS.INIT_SOC;
+  m1State.E_stored = 0;
+  m1State.running = true;
+  m1State.timeData = [];
+  m1State.speedData = [];
+  m1State.ebackData = [];
+  m1State.energyData = [];
+  m1State.carX = 10;
+  m1State.wheelAngle = 0;
+
+  document.getElementById('m1-run-btn').textContent = '⏹ 정지';
+  document.getElementById('m1-run-btn').className = 'btn btn-red';
+
+  m1Loop();
+}
+
+function stopM1Sim() {
+  m1State.running = false;
+  if (m1State.animFrame) cancelAnimationFrame(m1State.animFrame);
+  document.getElementById('m1-run-btn').textContent = '▶ 시뮬레이션 시작';
+  document.getElementById('m1-run-btn').className = 'btn btn-green';
+}
+
+function resetM1() {
+  stopM1Sim();
+  m1State.t = 0; m1State.SOC = PHYSICS.INIT_SOC; m1State.E_stored = 0;
+  m1State.timeData = []; m1State.speedData = []; m1State.ebackData = []; m1State.energyData = [];
+
+  const v_kmh = parseFloat(document.getElementById('m1-v').value);
+  updateM1Display(v_kmh/3.6, parseFloat(document.getElementById('m1-g').value)/100, 200);
+
+  m1Charts.speed.data.labels = [];
+  m1Charts.speed.data.datasets[0].data = [];
+  m1Charts.speed.update('none');
+
+  m1Charts.eback.data.labels = [];
+  m1Charts.eback.data.datasets[0].data = [];
+  m1Charts.eback.update('none');
+
+  m1Charts.energy.data.labels = [];
+  m1Charts.energy.data.datasets[0].data = [];
+  m1Charts.energy.update('none');
+}
+
+let m1LastUpdate = 0;
+const M1_CHART_INTERVAL = 0.2; // 0.2초마다 그래프 업데이트
+
+function m1Loop() {
+  if (!m1State.running) return;
+
+  // 물리 스텝 — 16ms당 여러 dt 계산
+  const stepsPerFrame = Math.max(1, Math.round(0.016 / PHYSICS.dt));
+  for (let s = 0; s < stepsPerFrame; s++) {
+    if (m1State.v <= 0.1) { stopM1Sim(); break; }
+    if (m1State.SOC >= 1.0) { m1State.v -= m1State.decel * PHYSICS.dt; } // 회생 차단 시 관성만
+    else {
+      m1State.v = Math.max(0, m1State.v - m1State.decel * PHYSICS.dt);
+    }
+    const P = m1State.SOC < 1.0 ? calcPregen(m1State.v) : 0;
+    const dE = P * PHYSICS.dt / 3600; // Wh
+    m1State.E_stored += dE;
+    m1State.SOC = Math.min(1.0, PHYSICS.INIT_SOC + m1State.E_stored / PHYSICS.BAT_CAPACITY_WH);
+    m1State.t += PHYSICS.dt;
+
+    if (m1State.t - m1LastUpdate >= M1_CHART_INTERVAL) {
+      m1LastUpdate = m1State.t;
+      m1State.timeData.push(m1State.t.toFixed(1));
+      m1State.speedData.push(+(m1State.v * 3.6).toFixed(2));
+      m1State.ebackData.push(+calcBackEMF(m1State.v).toFixed(2));
+      m1State.energyData.push(+m1State.E_stored.toFixed(4));
+    }
+  }
+
+  // UI 업데이트
+  const g_frac = parseFloat(document.getElementById('m1-g').value) / 100;
+  const N = parseFloat(document.getElementById('m1-n').value);
+  updateM1Display(m1State.v, g_frac, N);
+
+  // 그래프 업데이트
+  const MAX_PTS = 60;
+  const sl = m1State.timeData.length > MAX_PTS ? m1State.timeData.length - MAX_PTS : 0;
+  m1Charts.speed.data.labels = m1State.timeData.slice(sl);
+  m1Charts.speed.data.datasets[0].data = m1State.speedData.slice(sl);
+  m1Charts.speed.update('none');
+
+  m1Charts.eback.data.labels = m1State.timeData.slice(sl);
+  m1Charts.eback.data.datasets[0].data = m1State.ebackData.slice(sl);
+  m1Charts.eback.update('none');
+
+  m1Charts.energy.data.labels = m1State.timeData.slice(sl);
+  m1Charts.energy.data.datasets[0].data = m1State.energyData.slice(sl);
+  m1Charts.energy.update('none');
+
+  // 차량 애니메이션
+  drawM1Car();
+
+  m1State.animFrame = requestAnimationFrame(m1Loop);
+}
+
+/* ═══ MODULE 1 ANIMATION ═══ */
+function drawM1Car() {
+  const canvas = document.getElementById('m1-anim-canvas');
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+
+  ctx.clearRect(0, 0, W, H);
+
+  // 하늘 배경
+  const skyGrad = ctx.createLinearGradient(0,0,0,H*0.6);
+  skyGrad.addColorStop(0,'#050510');
+  skyGrad.addColorStop(1,'#0a0a20');
+  ctx.fillStyle = skyGrad;
+  ctx.fillRect(0, 0, W, H*0.6);
+
+  // 도로
+  const roadGrad = ctx.createLinearGradient(0, H*0.55, 0, H);
+  roadGrad.addColorStop(0,'#1a1a2e');
+  roadGrad.addColorStop(1,'#0d0d1a');
+  ctx.fillStyle = roadGrad;
+  ctx.fillRect(0, H*0.6, W, H);
+
+  // 도로 선 (애니메이션)
+  ctx.strokeStyle = '#ffcc00';
+  ctx.lineWidth = 2;
+  ctx.setLineDash([30, 20]);
+  const dashOff = (m1State.t * m1State.v0 * 20) % 50;
+  ctx.lineDashOffset = -dashOff;
+  ctx.beginPath();
+  ctx.moveTo(0, H*0.76); ctx.lineTo(W, H*0.76);
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  // 차 위치 (감속에 따라 천천히 이동)
+  const speedRatio = m1State.running ? m1State.v / Math.max(m1State.v0, 1) : 1;
+  m1State.carX += speedRatio * 1.5;
+  if (m1State.carX > W * 0.7) m1State.carX = W * 0.7;
+
+  const cx = m1State.carX;
+  const cy = H * 0.6;
+
+  drawCarIcon(ctx, cx, cy, speedRatio);
+
+  // 회생제동 전기 효과
+  if (m1State.running && m1State.v > 1 && m1State.SOC < 1.0) {
+    const E_back = calcBackEMF(m1State.v);
+    const intensity = Math.min(1, E_back / 300);
+
+    // 번개 아이콘들
+    for (let i = 0; i < 3; i++) {
+      const bx = cx + 60 + i * 40 + Math.sin(m1State.t*8 + i)*5;
+      const by = cy - 30 + Math.cos(m1State.t*6 + i)*8;
+      ctx.save();
+      ctx.globalAlpha = intensity * (0.5 + Math.sin(m1State.t*10+i)*0.3);
+      ctx.fillStyle = '#00ff88';
+      ctx.font = 'bold 16px Arial';
+      ctx.fillText('⚡', bx, by);
+      ctx.restore();
+    }
+
+    // 배터리 방향 화살표
+    ctx.save();
+    ctx.strokeStyle = '#00ff88';
+    ctx.lineWidth = 2;
+    ctx.globalAlpha = 0.7;
+    ctx.beginPath();
+    for (let i = 0; i < 4; i++) {
+      const ax = cx + 80 + i * 30;
+      ctx.moveTo(ax, cy - 20);
+      ctx.lineTo(ax + 15, cy - 20);
+    }
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  // 바퀴 회전
+  m1State.wheelAngle += speedRatio * 0.15;
+}
+
+function drawCarIcon(ctx, cx, cy, speedRatio) {
+  const H = cy;
+  // 차체
+  const bodyGrad = ctx.createLinearGradient(cx - 50, cy - 35, cx + 50, cy - 10);
+  bodyGrad.addColorStop(0, '#334');
+  bodyGrad.addColorStop(0.5, '#557');
+  bodyGrad.addColorStop(1, '#334');
+  ctx.fillStyle = bodyGrad;
+  ctx.beginPath();
+  ctx.roundRect(cx - 55, cy - 30, 110, 26, 8);
+  ctx.fill();
+
+  // 차지붕
+  ctx.fillStyle = '#445';
+  ctx.beginPath();
+  ctx.roundRect(cx - 30, cy - 48, 70, 20, 6);
+  ctx.fill();
+
+  // 창문
+  ctx.fillStyle = 'rgba(100,180,255,0.4)';
+  ctx.beginPath(); ctx.roundRect(cx - 25, cy - 45, 28, 15, 3); ctx.fill();
+  ctx.beginPath(); ctx.roundRect(cx + 5, cy - 45, 28, 15, 3); ctx.fill();
+
+  // 전조등 (회생제동 시 흐려짐)
+  ctx.fillStyle = speedRatio < 0.5 ? 'rgba(255,200,100,0.4)' : 'rgba(255,220,150,0.9)';
+  ctx.beginPath(); ctx.ellipse(cx + 52, cy - 20, 5, 4, 0, 0, Math.PI*2); ctx.fill();
+
+  // 후미등 (회생 시 더 밝음)
+  const tailBright = m1State.running && m1State.v > 1 ? 1.0 : 0.4;
+  ctx.fillStyle = `rgba(255,50,50,${tailBright})`;
+  ctx.beginPath(); ctx.ellipse(cx - 53, cy - 20, 5, 4, 0, 0, Math.PI*2); ctx.fill();
+
+  // 바퀴 앞
+  drawWheel(ctx, cx + 33, cy, m1State.wheelAngle);
+  // 바퀴 뒤
+  drawWheel(ctx, cx - 28, cy, m1State.wheelAngle);
+}
+
+function drawWheel(ctx, wx, wy, angle) {
+  const R = 13;
+  ctx.save();
+  ctx.translate(wx, wy);
+
+  // 타이어
+  ctx.fillStyle = '#111';
+  ctx.strokeStyle = '#333';
+  ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.arc(0, 0, R, 0, Math.PI*2); ctx.fill(); ctx.stroke();
+
+  // 휠 (회전)
+  ctx.rotate(angle);
+  ctx.strokeStyle = '#88aacc';
+  ctx.lineWidth = 2;
+  for (let i = 0; i < 5; i++) {
+    const a = (i / 5) * Math.PI * 2;
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.lineTo(Math.cos(a)*(R-3), Math.sin(a)*(R-3));
+    ctx.stroke();
+  }
+  ctx.fillStyle = '#557';
+  ctx.beginPath(); ctx.arc(0, 0, 4, 0, Math.PI*2); ctx.fill();
+  ctx.restore();
+}
+
+/* ═══════════════════════════════════════════════════════
+   MODULE 2 — SANKEY DIAGRAM
+════════════════════════════════════════════════════════ */
+let m2Speed = 30;
+let m2RegenOn = true;
+
+function selectM2Speed(v) {
+  m2Speed = v;
+  ['30','60','100','120'].forEach(s => {
+    document.getElementById('s2-'+s).classList.remove('active');
+  });
+  document.getElementById('s2-'+v).classList.add('active');
+  updateM2();
+}
+
+function updateM2() {
+  m2RegenOn = document.getElementById('m2-toggle').checked;
+  const v_ms = m2Speed / 3.6;
+  const KE = 0.5 * PHYSICS.M_vehicle * v_ms * v_ms; // Joules
+
+  const motor_loss = KE * (1 - PHYSICS.eta_motor);
+  const after_motor = KE * PHYSICS.eta_motor;
+  const inv_loss = after_motor * (1 - PHYSICS.eta_inverter);
+  const after_inv = after_motor * PHYSICS.eta_inverter;
+  const bat_loss = after_inv * (1 - PHYSICS.eta_battery);
+  const after_bat = after_inv * PHYSICS.eta_battery;
+  const blend_loss = after_bat * (1 - PHYSICS.eta_blending);
+  const stored = KE * PHYSICS.eta_total;
+
+  // ON 표시
+  document.getElementById('m2-ke-on').textContent = fmt(KE/1000,2) + ' kJ';
+  document.getElementById('m2-motor-loss').textContent = fmt(motor_loss/1000,2) + ' kJ';
+  document.getElementById('m2-inv-loss').textContent = fmt(inv_loss/1000,2) + ' kJ';
+  document.getElementById('m2-bat-loss').textContent = fmt(bat_loss/1000,2) + ' kJ';
+  document.getElementById('m2-blend-loss').textContent = fmt(blend_loss/1000,2) + ' kJ';
+  document.getElementById('m2-stored').textContent = fmt(stored/1000,2) + ' kJ';
+
+  // OFF 표시
+  document.getElementById('m2-ke-off').textContent = fmt(KE/1000,2) + ' kJ';
+  document.getElementById('m2-heat-loss').textContent = fmt(KE/1000,2) + ' kJ';
+  document.getElementById('m2-wasted').textContent = fmt(stored/1000,2) + ' kJ';
+
+  drawSankey('sankey-on', KE, true);
+  drawSankey('sankey-off', KE, false);
+
+  updateM2EffChart();
+}
+
+function drawSankey(canvasId, KE, isRegen) {
+  const canvas = document.getElementById(canvasId);
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+  ctx.clearRect(0, 0, W, H);
+
+  ctx.fillStyle = '#0a0a1a';
+  ctx.fillRect(0, 0, W, H);
+
+  if (isRegen) {
+    drawSankeyRegen(ctx, W, H, KE);
+  } else {
+    drawSankeyNoRegen(ctx, W, H, KE);
+  }
+}
+
+function drawSankeyRegen(ctx, W, H, KE) {
+  const stages = [
+    { label: '운동에너지\nKE', val: KE, color: '#4488ff', x: 30 },
+    { label: '모터\n변환 후', val: KE * PHYSICS.eta_motor, color: '#88aaff', x: W*0.28 },
+    { label: '인버터\n후', val: KE * PHYSICS.eta_motor * PHYSICS.eta_inverter, color: '#aabbff', x: W*0.50 },
+    { label: '배터리\n충전 후', val: KE * PHYSICS.eta_motor * PHYSICS.eta_inverter * PHYSICS.eta_battery, color: '#88ddaa', x: W*0.72 },
+    { label: '저장\n에너지', val: KE * PHYSICS.eta_total, color: '#00ff88', x: W-50 },
+  ];
+
+  const maxH = H * 0.65;
+  const barW = 36;
+  const baseY = H * 0.82;
+
+  // 손실 라벨들
+  const losses = [
+    { label: '모터손실\n5%', val: KE * 0.05, color: '#ff6644' },
+    { label: '인버터손실\n3%', val: KE * 0.03, color: '#ff8844' },
+    { label: '배터리손실\n5%', val: KE * 0.05, color: '#ffaa44' },
+    { label: '협조제동\n15%', val: KE * 0.15 * PHYSICS.eta_motor * PHYSICS.eta_inverter * PHYSICS.eta_battery, color: '#ffcc44' },
+  ];
+
+  // 흐름 그리기
+  for (let i = 0; i < stages.length - 1; i++) {
+    const s1 = stages[i], s2 = stages[i+1];
+    const h1 = (s1.val / KE) * maxH;
+    const h2 = (s2.val / KE) * maxH;
+    const y1 = baseY - h1, y2 = baseY - h2;
+    const x1 = s1.x + barW, x2 = s2.x;
+
+    const grad = ctx.createLinearGradient(x1, 0, x2, 0);
+    grad.addColorStop(0, s1.color + '66');
+    grad.addColorStop(1, s2.color + '44');
+
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    ctx.moveTo(x1, y1);
+    ctx.bezierCurveTo((x1+x2)/2, y1, (x1+x2)/2, y2, x2, y2);
+    ctx.lineTo(x2, baseY);
+    ctx.bezierCurveTo((x1+x2)/2, baseY, (x1+x2)/2, baseY, x1, baseY);
+    ctx.closePath();
+    ctx.fill();
+  }
+
+  // 막대 그리기
+  stages.forEach((s, i) => {
+    const h = (s.val / KE) * maxH;
+    const y = baseY - h;
+    const grad = ctx.createLinearGradient(0, y, 0, baseY);
+    grad.addColorStop(0, s.color);
+    grad.addColorStop(1, s.color + '88');
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    ctx.roundRect(s.x, y, barW, h, [4, 4, 0, 0]);
+    ctx.fill();
+
+    // 라벨
+    ctx.fillStyle = '#ddd';
+    ctx.font = '9px Arial';
+    ctx.textAlign = 'center';
+    const lines = s.label.split('\n');
+    lines.forEach((line, li) => {
+      ctx.fillText(line, s.x + barW/2, baseY + 14 + li * 12);
+    });
+
+    // 값 라벨
+    ctx.fillStyle = s.color;
+    ctx.font = 'bold 9px Arial';
+    ctx.fillText(fmt(s.val/1000,1)+'kJ', s.x + barW/2, y - 4);
+
+    // 퍼센트
+    const pct = ((s.val / KE) * 100).toFixed(0);
+    ctx.fillStyle = '#aaa';
+    ctx.font = '8px Arial';
+    ctx.fillText(pct+'%', s.x + barW/2, y - 14);
+  });
+
+  // 손실 화살표 (위쪽)
+  const lossPositions = [W*0.28, W*0.50, W*0.72, W*0.88];
+  losses.forEach((l, i) => {
+    const lx = lossPositions[i] - 16;
+    const lh = (l.val / KE) * maxH;
+    const baseStageH = (stages[i+1].val / KE) * maxH;
+    const ly = baseY - baseStageH - lh - 20;
+
+    ctx.fillStyle = l.color + '33';
+    ctx.strokeStyle = l.color;
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.roundRect(lx, ly, 32, lh + 15, 3);
+    ctx.fill(); ctx.stroke();
+
+    ctx.fillStyle = l.color;
+    ctx.font = '8px Arial';
+    ctx.textAlign = 'center';
+    const lLines = l.label.split('\n');
+    lLines.forEach((line, li2) => {
+      ctx.fillText(line, lx + 16, ly + 10 + li2 * 10);
+    });
+  });
+
+  // 제목
+  ctx.fillStyle = '#00ff88';
+  ctx.font = 'bold 11px Arial';
+  ctx.textAlign = 'center';
+  ctx.fillText('✅ 회생제동 ON — 에너지 보존 흐름', W/2, 16);
+}
+
+function drawSankeyNoRegen(ctx, W, H, KE) {
+  const baseY = H * 0.82;
+  const maxH = H * 0.65;
+  const barW = 36;
+
+  // 마찰 열로 직접
+  const sx = 30, ex = W - 50;
+  const h1 = maxH, h2 = 15;
+
+  const grad = ctx.createLinearGradient(sx + barW, 0, ex, 0);
+  grad.addColorStop(0, '#ff444466');
+  grad.addColorStop(1, '#ff8844aa');
+  ctx.fillStyle = grad;
+  ctx.beginPath();
+  ctx.moveTo(sx + barW, baseY - h1);
+  ctx.bezierCurveTo((sx+barW+ex)/2, baseY-h1, (sx+barW+ex)/2, baseY-h2, ex, baseY-h2);
+  ctx.lineTo(ex, baseY);
+  ctx.lineTo(sx+barW, baseY);
+  ctx.closePath();
+  ctx.fill();
+
+  // 시작 막대
+  const g1 = ctx.createLinearGradient(0, baseY-h1, 0, baseY);
+  g1.addColorStop(0, '#4488ff');
+  g1.addColorStop(1, '#4488ff88');
+  ctx.fillStyle = g1;
+  ctx.beginPath(); ctx.roundRect(sx, baseY-h1, barW, h1, [4,4,0,0]); ctx.fill();
+
+  // 끝 막대 (작음)
+  ctx.fillStyle = '#ff4444aa';
+  ctx.beginPath(); ctx.roundRect(ex, baseY-h2, barW, h2, [4,4,0,0]); ctx.fill();
+
+  // 열 아이콘들
+  for (let i = 0; i < 5; i++) {
+    const hx = sx + barW + 30 + i * ((ex-sx-barW-60)/4);
+    ctx.fillStyle = '#ff8844';
+    ctx.font = '18px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillText('🔥', hx, baseY - 20 - i*8);
+  }
+
+  // 라벨
+  ctx.fillStyle = '#4488ff';
+  ctx.font = 'bold 10px Arial';
+  ctx.textAlign = 'center';
+  ctx.fillText('운동에너지\nKE', sx + barW/2, baseY + 16);
+  ctx.fillText(fmt(KE/1000,1)+'kJ', sx + barW/2, baseY - h1 - 4);
+
+  ctx.fillStyle = '#ff4444';
+  ctx.fillText('잔류열', ex + barW/2, baseY + 14);
+  ctx.fillText('~0 kJ', ex + barW/2, baseY - h2 - 4);
+
+  // 큰 손실 라벨
+  ctx.fillStyle = '#ff6644';
+  ctx.font = 'bold 13px Arial';
+  ctx.textAlign = 'center';
+  ctx.fillText('🔥 100% 열 소산', W/2, baseY - h1*0.5);
+  ctx.font = '10px Arial';
+  ctx.fillStyle = '#888';
+  ctx.fillText(fmt(KE/1000,1)+' kJ → 열에너지', W/2, baseY - h1*0.5 + 16);
+
+  ctx.fillStyle = '#ff4444';
+  ctx.font = 'bold 11px Arial';
+  ctx.fillText('❌ 회생제동 OFF — 전부 열로 손실', W/2, 16);
+}
+
+function updateM2EffChart() {
+  if (!m2Charts.eff) return;
+
+  const v_ms = m2Speed / 3.6;
+  const KE = 0.5 * PHYSICS.M_vehicle * v_ms * v_ms;
+
+  m2Charts.eff.data.datasets[0].data = [
+    KE/1000,
+    KE * PHYSICS.eta_motor / 1000,
+    KE * PHYSICS.eta_motor * PHYSICS.eta_inverter / 1000,
+    KE * PHYSICS.eta_motor * PHYSICS.eta_inverter * PHYSICS.eta_battery / 1000,
+    KE * PHYSICS.eta_total / 1000
+  ];
+  m2Charts.eff.update('none');
+}
+
+let m2Charts = {};
+
+function initM2Charts() {
+  m2Charts.eff = new Chart(document.getElementById('m2-eff-chart'), {
+    type: 'bar',
+    data: {
+      labels: ['KE 총량', '모터 후(95%)', '인버터 후(97%)', '배터리 후(95%)', '협조 후(74.3%)'],
+      datasets: [{
+        label: '에너지 (kJ)',
+        data: [],
+        backgroundColor: ['#4488ff','#88aaff','#aabbff','#88ddaa','#00ff88'],
+        borderColor: ['#2266cc','#5588cc','#8899cc','#55bb88','#00cc66'],
+        borderWidth: 1,
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      animation: { duration: 300 },
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { ticks: { color:'#888', font:{size:9} }, grid: { color:'#1a1a3a' } },
+        y: { ticks: { color:'#888', font:{size:9} }, grid: { color:'#1a1a3a' },
+             title: { display:true, text:'에너지 (kJ)', color:'#666', font:{size:9} } }
+      }
+    }
+  });
+}
+
+/* ═══════════════════════════════════════════════════════
+   MODULE 3 — 제동력 vs 승차감
+════════════════════════════════════════════════════════ */
+let m3Charts = {};
+
+function initM3Charts() {
+  const commonOpts = {
+    responsive: true, maintainAspectRatio: false,
+    animation: { duration: 200 },
+    plugins: { legend: { display: true, labels: { color:'#aaa', font:{size:9}, boxWidth:12 } } },
+    scales: {
+      x: { ticks: { color:'#888', font:{size:9} }, grid: { color:'#1a1a3a' } },
+      y: { ticks: { color:'#888', font:{size:9} }, grid: { color:'#1a1a3a' } }
+    }
+  };
+
+  // 제동력 구성 차트
+  m3Charts.force = new Chart(document.getElementById('m3-chart-force'), {
+    type: 'bar',
+    data: {
+      labels: ['0.05g','0.10g','0.15g','0.20g','0.25g','0.30g'],
+      datasets: [
+        {
+          label: '회생제동력 (kN)',
+          data: [],
+          backgroundColor: 'rgba(68,136,255,0.7)',
+          borderColor: '#4488ff',
+          borderWidth: 1,
+        },
+        {
+          label: '마찰제동력 (kN)',
+          data: [],
+          backgroundColor: 'rgba(255,68,68,0.7)',
+          borderColor: '#ff4444',
+          borderWidth: 1,
+        }
+      ]
+    },
+    options: {
+      ...commonOpts,
+      scales: {
+        ...commonOpts.scales,
+        x: { ...commonOpts.scales.x, stacked: true, title:{display:true,text:'제동강도',color:'#666',font:{size:9}} },
+        y: { ...commonOpts.scales.y, stacked: true, title:{display:true,text:'제동력 (kN)',color:'#666',font:{size:9}} }
+      }
+    }
+  });
+
+  // 승차감 점수
+  m3Charts.comfort = new Chart(document.getElementById('m3-chart-comfort'), {
+    type: 'line',
+    data: {
+      labels: ['0.05g','0.10g','0.15g','0.20g','0.25g'],
+      datasets: [
+        {
+          label: '승차감 점수 (Xu 2019)',
+          data: XU_DATA.comfort_score,
+          borderColor: '#88ddff',
+          backgroundColor: 'rgba(136,221,255,0.1)',
+          borderWidth: 2,
+          pointRadius: 5,
+          pointBackgroundColor: '#88ddff',
+          fill: true,
+        },
+        {
+          label: '현재 선택값',
+          data: [],
+          borderColor: '#ff4444',
+          pointRadius: 10,
+          pointBackgroundColor: '#ff4444',
+          showLine: false,
+          pointStyle: 'star',
+        },
+        {
+          label: '허용 기준 (5.0)',
+          data: [5,5,5,5,5],
+          borderColor: '#ffcc00',
+          borderWidth: 1.5,
+          borderDash: [5,5],
+          pointRadius: 0,
+          fill: false,
+        }
+      ]
+    },
+    options: {
+      ...commonOpts,
+      scales: {
+        ...commonOpts.scales,
+        x: { ...commonOpts.scales.x, title:{display:true,text:'제동강도',color:'#666',font:{size:9}} },
+        y: { ...commonOpts.scales.y, min:0, max:7.5, title:{display:true,text:'승차감 점수 (/7)',color:'#666',font:{size:9}} }
+      }
+    }
+  });
+
+  // 에너지 회수율
+  m3Charts.regen = new Chart(document.getElementById('m3-chart-regen'), {
+    type: 'line',
+    data: {
+      labels: ['0.05g','0.10g','0.15g','0.20g','0.25g'],
+      datasets: [
+        {
+          label: '회수율 (Xu 2019)',
+          data: XU_DATA.regen_rate.map(v => v*100),
+          borderColor: '#00ff88',
+          backgroundColor: 'rgba(0,255,136,0.1)',
+          borderWidth: 2,
+          pointRadius: 5,
+          fill: true,
+        },
+        {
+          label: '최적구간',
+          data: [],
+          borderColor: '#ffcc00',
+          pointRadius: 10,
+          pointBackgroundColor: '#ffcc00',
+          showLine: false,
+          pointStyle: 'star',
+        }
+      ]
+    },
+    options: {
+      ...commonOpts,
+      scales: {
+        ...commonOpts.scales,
+        x: { ...commonOpts.scales.x, title:{display:true,text:'제동강도',color:'#666',font:{size:9}} },
+        y: { ...commonOpts.scales.y, min:0, max:100, title:{display:true,text:'회수율 (%)',color:'#666',font:{size:9}} }
+      }
+    }
+  });
+
+  // 저크 차트
+  m3Charts.jerk = new Chart(document.getElementById('m3-chart-jerk'), {
+    type: 'line',
+    data: {
+      labels: [],
+      datasets: [
+        {
+          label: '저크 J (m/s³)',
+          data: [],
+          borderColor: '#ff8800',
+          backgroundColor: 'rgba(255,136,0,0.1)',
+          borderWidth: 2,
+          pointRadius: 0,
+          fill: true,
+        },
+        {
+          label: 'ISO 2631 상한 (+2.5)',
+          data: [],
+          borderColor: '#ffcc00',
+          borderWidth: 1.5,
+          borderDash: [4,4],
+          pointRadius: 0,
+        },
+        {
+          label: 'ISO 2631 하한 (-2.5)',
+          data: [],
+          borderColor: '#ffcc00',
+          borderWidth: 1.5,
+          borderDash: [4,4],
+          pointRadius: 0,
+        }
+      ]
+    },
+    options: {
+      ...commonOpts,
+      scales: {
+        ...commonOpts.scales,
+        x: { ...commonOpts.scales.x, title:{display:true,text:'시간 (s)',color:'#666',font:{size:9}} },
+        y: { ...commonOpts.scales.y, title:{display:true,text:'저크 (m/s³)',color:'#666',font:{size:9}} }
+      }
+    }
+  });
+}
+
+function updateM3() {
+  const gSlider = document.getElementById('m3-g');
+  updateSliderBG(gSlider);
+  const g_frac = parseFloat(gSlider.value) / 100;
+  const g_ms2 = g_frac * PHYSICS.g;
+
+  document.getElementById('m3-g-val').textContent = g_frac.toFixed(2) + ' g';
+
+  // 힌트
+  let hint = '';
+  if (g_frac <= 0.08) hint = '소극적 구간: 매우 부드럽지만 에너지 회수율이 낮습니다';
+  else if (g_frac <= 0.12) hint = '표준 구간(최적): 승차감과 효율의 균형점입니다';
+  else if (g_frac <= 0.17) hint = '적극적 구간: 효율 우선, 약간의 불쾌감이 생길 수 있습니다';
+  else if (g_frac <= 0.22) hint = '강한 제동: 승차감 나빠짐, ISO 기준 초과 가능성 있습니다';
+  else hint = '원-페달 구간: 최대 회수율, 하지만 승차감이 크게 떨어집니다';
+  document.getElementById('m3-g-hint').textContent = hint;
+
+  // 회생제동력 = 가능한 최대값 (속도 80km/h 기준)
+  const v_ms = 80 / 3.6;
+  const F_total = PHYSICS.M_vehicle * g_ms2;
+
+  // 회생제동 가능 비율 (보간)
+  const regen_rate = lerp(XU_DATA.deceleration, XU_DATA.regen_rate, g_frac);
+  const F_regen = F_total * regen_rate;
+  const F_fric = F_total * (1 - regen_rate);
+
+  // 승차감 / 회수율 보간
+  const comfort = lerp(XU_DATA.deceleration, XU_DATA.comfort_score, g_frac);
+  const regen_pct = regen_rate * 100;
+
+  // 저크 계산 (제동 시작 순간)
+  const jerk_init = g_ms2 / 0.3; // 0.3초 내 제동 발생 가정
+  const jerkData = [];
+  const timeData = [];
+  for (let t = 0; t <= 3; t += 0.05) {
+    timeData.push(t.toFixed(1));
+    let j = 0;
+    if (t < 0.3) j = jerk_init * (t / 0.3); // 증가
+    else if (t < 2.5) j = jerk_init * 0.1; // 유지
+    else j = jerk_init * (1 - (t-2.5)/0.5) * 0.1; // 감소
+    jerkData.push(+j.toFixed(3));
+  }
+  const maxJerk = Math.max(...jerkData);
+
+  document.getElementById('m3-dec').textContent = fmt(g_ms2, 2) + ' m/s²';
+  document.getElementById('m3-f-regen').textContent = fmt(F_regen/1000, 2) + ' kN';
+  document.getElementById('m3-f-fric').textContent = fmt(F_fric/1000, 2) + ' kN';
+  document.getElementById('m3-comfort').textContent = fmt(comfort, 1) + ' / 7';
+  document.getElementById('m3-regen-rate').textContent = fmt(regen_pct, 1) + ' %';
+  document.getElementById('m3-jerk').textContent = fmt(maxJerk, 2) + ' m/s³';
+
+  const isoOk = maxJerk <= 2.5;
+  document.getElementById('m3-iso-status').textContent = isoOk ? '✅ 기준 충족' : '❌ 기준 초과';
+  document.getElementById('m3-iso-status').style.color = isoOk ? '#00ff88' : '#ff4444';
+  document.getElementById('m3-jerk-warning').classList.toggle('show', !isoOk);
+
+  // 제동력 차트 업데이트
+  const gVals = [0.05, 0.10, 0.15, 0.20, 0.25, 0.30];
+  const regenForces = gVals.map(g => {
+    const F = PHYSICS.M_vehicle * g * PHYSICS.g;
+    const rr = lerp(XU_DATA.deceleration, XU_DATA.regen_rate, g);
+    return +(F * rr / 1000).toFixed(2);
+  });
+  const fricForces = gVals.map((g, i) => {
+    const F = PHYSICS.M_vehicle * g * PHYSICS.g;
+    const rr = lerp(XU_DATA.deceleration, XU_DATA.regen_rate, g);
+    return +(F * (1-rr) / 1000).toFixed(2);
+  });
+
+  m3Charts.force.data.datasets[0].data = regenForces;
+  m3Charts.force.data.datasets[1].data = fricForces;
+
+  // 현재값 강조 (막대 색상)
+  const idx = gVals.findIndex(g => Math.abs(g - g_frac) < 0.015);
+  const bgR = regenForces.map((_, i) => i === idx ? 'rgba(68,136,255,1)' : 'rgba(68,136,255,0.4)');
+  const bgF = fricForces.map((_, i) => i === idx ? 'rgba(255,68,68,1)' : 'rgba(255,68,68,0.4)');
+  m3Charts.force.data.datasets[0].backgroundColor = bgR;
+  m3Charts.force.data.datasets[1].backgroundColor = bgF;
+  m3Charts.force.update('none');
+
+  // 승차감 현재값
+  const xLabels = ['0.05g','0.10g','0.15g','0.20g','0.25g'];
+  const comfortCur = xLabels.map((_, i) => {
+    if (Math.abs(XU_DATA.deceleration[i] - g_frac) < 0.015) return XU_DATA.comfort_score[i];
+    return null;
+  }).filter((v,i) => v !== null);
+  const comfortCurIdx = XU_DATA.deceleration.findIndex(d => Math.abs(d - g_frac) < 0.015);
+  m3Charts.comfort.data.datasets[1].data = xLabels.map((_,i) => i === comfortCurIdx ? XU_DATA.comfort_score[i] : null);
+  m3Charts.comfort.update('none');
+
+  // 회수율 현재값
+  m3Charts.regen.data.datasets[1].data = xLabels.map((_,i) => i === comfortCurIdx ? XU_DATA.regen_rate[i]*100 : null);
+  m3Charts.regen.update('none');
+
+  // 저크 차트
+  m3Charts.jerk.data.labels = timeData;
+  m3Charts.jerk.data.datasets[0].data = jerkData;
+  m3Charts.jerk.data.datasets[0].borderColor = maxJerk > 2.5 ? '#ff4444' : '#ff8800';
+  m3Charts.jerk.data.datasets[0].backgroundColor = maxJerk > 2.5 ? 'rgba(255,68,68,0.1)' : 'rgba(255,136,0,0.1)';
+  m3Charts.jerk.data.datasets[1].data = timeData.map(() => 2.5);
+  m3Charts.jerk.data.datasets[2].data = timeData.map(() => -2.5);
+  m3Charts.jerk.update('none');
+}
+
+/* ═══════════════════════════════════════════════════════
+   MODULE 4 — COMPREHENSIVE SIMULATOR
+════════════════════════════════════════════════════════ */
+let m4State = {
+  scenario: 1,
+  strategyIdx: 0,
+  running: false,
+  animFrame: null,
+  t: 0,
+  v: 0,
+  dist: 0,
+  SOC: PHYSICS.INIT_SOC,
+  regenE: 0,
+  profile: [],
+  profileIdx: 0,
+  timeData: [],
+  speedData: [],
+  speedColors: [],
+  socData: [],
+  roadOffset: 0,
+};
+
+let m4Charts = {};
+
+// 시나리오 프로파일 생성 — Ref: Ko et al. (2014), UDDS 단순화
+function buildScenarioProfile(scenarioId) {
+  const profile = []; // {v_target, duration, phase}
+  const dt = 0.5;
+
+  if (scenarioId === 1) {
+    // 도심: 신호등 5회, 30km/h 평균
+    const segs = [
+      {v:0,t:5},{v:30,t:15},{v:30,t:10},{v:0,t:5},
+      {v:30,t:12},{v:30,t:8},{v:0,t:5},
+      {v:40,t:18},{v:0,t:5},
+      {v:30,t:14},{v:30,t:10},{v:0,t:5},
+      {v:25,t:10},{v:0,t:5},
+    ];
+    return buildFromSegs(segs, dt);
+  } else if (scenarioId === 2) {
+    // 고속도로
+    const segs = [
+      {v:0,t:5},{v:90,t:30},{v:90,t:40},
+      {v:60,t:20},{v:90,t:30},{v:90,t:30},
+      {v:0,t:10},
+    ];
+    return buildFromSegs(segs, dt);
+  } else {
+    // 서울 도심 (Ko et al. 2014)
+    const segs = [
+      {v:0,t:8},{v:40,t:20},{v:60,t:15},{v:40,t:10},{v:0,t:8},
+      {v:30,t:15},{v:50,t:18},{v:30,t:12},{v:0,t:6},
+      {v:20,t:10},{v:40,t:14},{v:50,t:16},{v:20,t:8},{v:0,t:8},
+      {v:60,t:25},{v:40,t:12},{v:0,t:10},
+    ];
+    return buildFromSegs(segs, dt);
+  }
+}
+
+function buildFromSegs(segs, dt) {
+  const profile = [];
+  for (let i = 0; i < segs.length - 1; i++) {
+    const v0 = segs[i].v / 3.6;
+    const v1 = segs[i+1].v / 3.6;
+    const dur = segs[i].t;
+    const steps = Math.round(dur / dt);
+    for (let s = 0; s < steps; s++) {
+      const v = v0 + (v1 - v0) * (s / steps);
+      const isAccel = v1 > v0;
+      const isDecel = v1 < v0;
+      profile.push({
+        v: Math.max(0, v),
+        phase: isAccel ? 'accel' : isDecel ? 'regen' : 'cruise',
+        dt: dt,
+      });
+    }
+  }
+  return profile;
+}
+
+function selectScenario(id) {
+  m4State.scenario = id;
+  [1,2,3].forEach(i => document.getElementById('sc-'+i).classList.remove('active'));
+  document.getElementById('sc-'+id).classList.add('active');
+  stopM4Sim();
+}
+
+function selectStrategy(idx) {
+  m4State.strategyIdx = idx;
+  [0,1,2,3].forEach(i => document.getElementById('str-'+i).classList.remove('active'));
+  document.getElementById('str-'+idx).classList.add('active');
+}
+
+function runM4Sim() {
+  stopM4Sim();
+  m4State.t = 0;
+  m4State.dist = 0;
+  m4State.SOC = PHYSICS.INIT_SOC;
+  m4State.regenE = 0;
+  m4State.profile = buildScenarioProfile(m4State.scenario);
+  m4State.profileIdx = 0;
+  m4State.timeData = [];
+  m4State.speedData = [];
+  m4State.speedColors = [];
+  m4State.socData = [];
+  m4State.roadOffset = 0;
+  m4State.running = true;
+
+  m4Charts.speed.data.labels = [];
+  m4Charts.speed.data.datasets[0].data = [];
+  m4Charts.speed.update('none');
+  m4Charts.soc.data.labels = [];
+  m4Charts.soc.data.datasets[0].data = [];
+  m4Charts.soc.update('none');
+
+  document.getElementById('m4-result-section').style.display = 'none';
+
+  m4Loop();
+}
+
+function stopM4Sim() {
+  m4State.running = false;
+  if (m4State.animFrame) cancelAnimationFrame(m4State.animFrame);
+}
+
+function m4Loop() {
+  if (!m4State.running) return;
+  if (m4State.profileIdx >= m4State.profile.length) {
+    m4State.running = false;
+    showM4FinalResult();
+    return;
+  }
+
+  const strategy = STRATEGIES[m4State.strategyIdx];
+  const step = m4State.profile[m4State.profileIdx];
+  m4State.profileIdx++;
+
+  m4State.v = step.v;
+  m4State.t += step.dt;
+  m4State.dist += step.v * step.dt / 1000; // km
+
+  // 회생제동 전력 계산
+  let regenPow = 0;
+  if (step.phase === 'regen' && step.v > 0.5 && m4State.SOC < 1.0) {
+    const g_ms2 = strategy.g * PHYSICS.g;
+    const P_raw = PHYSICS.M_vehicle * g_ms2 * step.v; // F*v
+    regenPow = P_raw * PHYSICS.eta_total * strategy.regen;
+    const dE = regenPow * step.dt / 3600; // Wh
+    m4State.regenE += dE;
+    m4State.SOC = Math.min(1.0, PHYSICS.INIT_SOC + m4State.regenE / PHYSICS.BAT_CAPACITY_WH);
+  }
+
+  m4State.timeData.push(m4State.t.toFixed(0));
+  m4State.speedData.push(+(step.v * 3.6).toFixed(1));
+  m4State.socData.push(+(m4State.SOC * 100).toFixed(2));
+
+  // 업데이트
+  document.getElementById('m4-v-cur').textContent = fmt(step.v*3.6,1) + ' km/h';
+  document.getElementById('m4-state').textContent =
+    step.phase === 'accel' ? '🔵 가속' :
+    step.phase === 'regen' ? '🟢 회생제동' : step.v < 0.5 ? '⬜ 정지' : '⚪ 순항';
+  document.getElementById('m4-regen-e').textContent = fmt(m4State.regenE,1) + ' Wh';
+  document.getElementById('m4-soc').textContent = fmt(m4State.SOC*100,1) + ' %';
+  document.getElementById('m4-dist').textContent = fmt(m4State.dist,2) + ' km';
+  document.getElementById('m4-time').textContent = fmt(m4State.t,0) + ' s';
+
+  const socBarW = Math.min(100, m4State.SOC*100);
+  document.getElementById('m4-soc-bar').style.width = socBarW + '%';
+  document.getElementById('m4-soc-bar').textContent = fmt(m4State.SOC*100,1)+'%';
+
+  // 그래프 업데이트 (매 3프레임)
+  if (m4State.profileIdx % 3 === 0) {
+    const MAX_PTS = 100;
+    const sl = Math.max(0, m4State.timeData.length - MAX_PTS);
+
+    const spColors = m4State.speedData.slice(sl).map((v, i) => {
+      const ph = m4State.profile[Math.max(0, sl + i - 1)];
+      if (!ph) return '#888';
+      return ph.phase === 'accel' ? '#4488ff' : ph.phase === 'regen' ? '#00ff88' : '#888888';
+    });
+
+    m4Charts.speed.data.labels = m4State.timeData.slice(sl);
+    m4Charts.speed.data.datasets[0].data = m4State.speedData.slice(sl);
+    m4Charts.speed.data.datasets[0].pointBackgroundColor = spColors;
+    m4Charts.speed.data.datasets[0].segment = {
+      borderColor: ctx => {
+        const ph = m4State.profile[Math.max(0, sl + ctx.p0DataIndex - 1)];
+        if (!ph) return '#888';
+        return ph.phase === 'accel' ? '#4488ff' : ph.phase === 'regen' ? '#00ff88' : '#555';
+      }
+    };
+    m4Charts.speed.update('none');
+
+    m4Charts.soc.data.labels = m4State.timeData.slice(sl);
+    m4Charts.soc.data.datasets[0].data = m4State.socData.slice(sl);
+    m4Charts.soc.update('none');
+  }
+
+  drawM4Road();
+
+  // 애니메이션 속도 (실제 시간과 비교해 빠르게)
+  m4State.animFrame = requestAnimationFrame(m4Loop);
+}
+
+function drawM4Road() {
+  const canvas = document.getElementById('m4-road-canvas');
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+  ctx.clearRect(0, 0, W, H);
+
+  ctx.fillStyle = '#050518';
+  ctx.fillRect(0, 0, W, H);
+
+  // 도로
+  ctx.fillStyle = '#1a1a2a';
+  ctx.fillRect(0, H*0.4, W, H*0.6);
+
+  // 도로 선
+  ctx.strokeStyle = '#ffcc0066';
+  ctx.lineWidth = 2;
+  ctx.setLineDash([20, 15]);
+  m4State.roadOffset = (m4State.roadOffset + m4State.v * 3) % 35;
+  ctx.lineDashOffset = -m4State.roadOffset;
+  ctx.beginPath();
+  ctx.moveTo(0, H*0.7); ctx.lineTo(W, H*0.7);
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  // 시나리오별 아이콘
+  const scenario = m4State.scenario;
+
+  if (scenario === 1) {
+    // 신호등 (도심)
+    const positions = [W*0.2, W*0.4, W*0.6, W*0.8];
+    positions.forEach(px => {
+      ctx.fillStyle = '#222';
+      ctx.beginPath(); ctx.roundRect(px-4, H*0.1, 8, 28, 2); ctx.fill();
+      const isStop = m4State.v < 0.5;
+      ctx.fillStyle = isStop ? '#ff3333' : '#33ff33';
+      ctx.beginPath(); ctx.arc(px, H*0.15, 5, 0, Math.PI*2); ctx.fill();
+    });
+  }
+
+  if (scenario === 2) {
+    // 고속도로 표지판
+    ctx.fillStyle = '#004400';
+    ctx.beginPath(); ctx.roundRect(W*0.5-25, 10, 50, 24, 4); ctx.fill();
+    ctx.fillStyle = '#fff';
+    ctx.font = 'bold 11px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillText('HIGHWAY', W*0.5, 26);
+  }
+
+  // 차량
+  const carX = W * 0.25;
+  const carY = H * 0.45;
+
+  ctx.save();
+  // 흔들림 효과 (저크)
+  const g_frac = STRATEGIES[m4State.strategyIdx].g;
+  const jitter = m4State.profile[m4State.profileIdx] &&
+    m4State.profile[m4State.profileIdx].phase === 'regen' ? (Math.random()-0.5)*g_frac*5 : 0;
+  ctx.translate(carX, carY + jitter);
+  drawSmallCar(ctx, STRATEGIES[m4State.strategyIdx]);
+  ctx.restore();
+
+  // 배터리 충전 표시
+  if (m4State.profile[m4State.profileIdx] &&
+      m4State.profile[m4State.profileIdx].phase === 'regen') {
+    ctx.save();
+    ctx.globalAlpha = 0.7 + Math.sin(m4State.t*10)*0.3;
+    ctx.font = '16px Arial';
+    ctx.fillText('⚡', carX + 35, carY - 15);
+    ctx.restore();
+  }
+
+  // 진행 표시
+  const progress = m4State.profileIdx / Math.max(1, m4State.profile.length);
+  ctx.fillStyle = '#1a1a3a';
+  ctx.beginPath(); ctx.roundRect(10, H-18, W-20, 8, 4); ctx.fill();
+  ctx.fillStyle = '#00ff88';
+  ctx.beginPath(); ctx.roundRect(10, H-18, (W-20)*progress, 8, 4); ctx.fill();
+  ctx.fillStyle = '#aaa';
+  ctx.font = '8px Arial';
+  ctx.textAlign = 'left';
+  ctx.fillText('진행률: ' + (progress*100).toFixed(0) + '%', 12, H-4);
+}
+
+function drawSmallCar(ctx, strategy) {
+  // 차체 색상 전략별
+  const colors = ['#448844','#336699','#884433','#773377'];
+  const c = colors[STRATEGIES.indexOf(strategy)] || '#446';
+
+  ctx.fillStyle = c;
+  ctx.beginPath(); ctx.roundRect(-30, -12, 60, 16, 4); ctx.fill();
+  ctx.fillStyle = c + '99';
+  ctx.beginPath(); ctx.roundRect(-18, -22, 36, 12, 3); ctx.fill();
+
+  // 창문
+  ctx.fillStyle = 'rgba(150,200,255,0.4)';
+  ctx.beginPath(); ctx.roundRect(-15, -20, 14, 8, 2); ctx.fill();
+  ctx.beginPath(); ctx.roundRect(1, -20, 14, 8, 2); ctx.fill();
+
+  // 바퀴
+  [[-18,4],[18,4]].forEach(([wx,wy]) => {
+    ctx.fillStyle = '#111';
+    ctx.beginPath(); ctx.arc(wx, wy, 6, 0, Math.PI*2); ctx.fill();
+    ctx.strokeStyle = '#558'; ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.arc(wx, wy, 4, 0, Math.PI*2); ctx.stroke();
+  });
+}
+
+function showM4FinalResult() {
+  const tableBody = document.getElementById('m4-table-body');
+  tableBody.innerHTML = '';
+
+  const scenario = m4State.scenario;
+  const profile = buildScenarioProfile(scenario);
+
+  // 각 전략 계산
+  const results = STRATEGIES.map((strat, idx) => {
+    let totalRegen = 0;
+    let prevV = 0;
+    profile.forEach(step => {
+      if (step.phase === 'regen' && step.v > 0.5) {
+        const g_ms2 = strat.g * PHYSICS.g;
+        const P_raw = PHYSICS.M_vehicle * g_ms2 * step.v;
+        const dE = P_raw * PHYSICS.eta_total * strat.regen * step.dt / 3600;
+        totalRegen += dE;
+      }
+    });
+    const socIncrease = totalRegen / PHYSICS.BAT_CAPACITY_WH;
+    const extraRange = (totalRegen / 1000) * 5; // 5km/kWh
+    const jerkMax = (strat.g * PHYSICS.g) / 0.3;
+    const isoOk = jerkMax <= 2.5;
+
+    return {
+      ...strat,
+      totalRegen,
+      socIncrease,
+      extraRange,
+      isoOk,
+      idx
+    };
+  });
+
+  const maxRegen = Math.max(...results.map(r => r.totalRegen));
+
+  results.forEach(r => {
+    const tr = document.createElement('tr');
+    if (r.idx === m4State.strategyIdx) tr.classList.add('highlight');
+    const color = r.idx === m4State.strategyIdx ? 'var(--accent-green)' : 'var(--text-secondary)';
+
+    tr.innerHTML = `
+      <td style="color:${color};font-weight:600">${r.label}</td>
+      <td>${r.g*100} %g</td>
+      <td style="color:var(--accent-green)">${(r.totalRegen/1000).toFixed(3)} kWh</td>
+      <td>+${(r.socIncrease*100).toFixed(2)} %</td>
+      <td style="color:var(--accent-blue)">+${r.extraRange.toFixed(2)} km</td>
+      <td>${r.comfort.toFixed(1)} / 7</td>
+      <td style="color:${r.isoOk ? 'var(--accent-green)' : 'var(--accent-red)'}">
+        ${r.isoOk ? '✅ 충족' : '❌ 초과'}
+      </td>
+    `;
+    tableBody.appendChild(tr);
+  });
+
+  document.getElementById('m4-result-section').style.display = 'block';
+}
+
+function runAllM4() {
+  // 전략 전체를 순서대로 시뮬레이션해서 결과 표시
+  const profile = buildScenarioProfile(m4State.scenario);
+  m4State.profile = profile;
+  m4State.profileIdx = profile.length; // 즉시 완료
+  showM4FinalResult();
+  document.getElementById('m4-result-section').style.display = 'block';
+}
+
+function initM4Charts() {
+  const commonOpts = {
+    responsive: true, maintainAspectRatio: false,
+    animation: { duration: 0 },
+    plugins: { legend: { display: false } },
+    scales: {
+      x: { ticks: { color:'#888', font:{size:9} }, grid: { color:'#1a1a3a' } },
+      y: { ticks: { color:'#888', font:{size:9} }, grid: { color:'#1a1a3a' } }
+    }
+  };
+
+  m4Charts.speed = new Chart(document.getElementById('m4-chart-speed'), {
+    type: 'line',
+    data: {
+      labels: [],
+      datasets: [{
+        label: '속도 (km/h)',
+        data: [],
+        borderColor: '#4488ff',
+        borderWidth: 2,
+        pointRadius: 0,
+        fill: false,
+      }]
+    },
+    options: {
+      ...commonOpts,
+      plugins: { legend: { display: true, labels: { color:'#888', font:{size:9} } } },
+      scales: {
+        ...commonOpts.scales,
+        x: { ...commonOpts.scales.x, title:{display:true,text:'시간 (s)',color:'#666',font:{size:9}} },
+        y: { ...commonOpts.scales.y, min:0, title:{display:true,text:'속도 (km/h)',color:'#666',font:{size:9}} }
+      }
+    }
+  });
+
+  m4Charts.soc = new Chart(document.getElementById('m4-chart-soc'), {
+    type: 'line',
+    data: {
+      labels: [],
+      datasets: [{
+        label: '배터리 SOC (%)',
+        data: [],
+        borderColor: '#00ff88',
+        backgroundColor: 'rgba(0,255,136,0.1)',
+        borderWidth: 2,
+        pointRadius: 0,
+        fill: true,
+      }]
+    },
+    options: {
+      ...commonOpts,
+      plugins: { legend: { display: true, labels: { color:'#888', font:{size:9} } } },
+      scales: {
+        ...commonOpts.scales,
+        x: { ...commonOpts.scales.x, title:{display:true,text:'시간 (s)',color:'#666',font:{size:9}} },
+        y: { ...commonOpts.scales.y, min:55, max:75, title:{display:true,text:'SOC (%)',color:'#666',font:{size:9}} }
+      }
+    }
+  });
+}
+
+/* ═══════════════════════════════════════════════════════
+   QUIZ SYSTEM
+════════════════════════════════════════════════════════ */
+const QUIZ_ANSWERS = {
+  'q1': { correct: 1,
+    feedback_ok: '✅ 정답! E_back = K_e × ω_r = K_e × (v × G_r/r_wheel). 속도 v가 2배 → ω_r이 2배 → E_back도 2배. 선형 비례 관계입니다.',
+    feedback_fail: '❌ 오답. E_back = K_e × (v × G_r / r_wheel). 속도 v에 선형 비례하므로 v가 2배가 되면 E_back도 정확히 2배가 됩니다.' },
+  'q2': { correct: 1,
+    feedback_ok: '✅ 정답! v → 0이면 ω_r → 0이므로 E_back = K_e × ω_r → 0. 정지 시 역기전력은 사라집니다.',
+    feedback_fail: '❌ 오답. 역기전력 E_back = K_e × ω_r은 각속도에 비례합니다. 차량이 정지하면 ω_r = 0이 되어 E_back도 0에 수렴합니다.' },
+  'q3': { correct: 1,
+    feedback_ok: '✅ 정답! η_total = 0.95 × 0.97 × 0.95 × 0.85 ≈ 0.743 = 74.3%. 이것이 회생제동의 종합 효율입니다.',
+    feedback_fail: '❌ 오답. η_total = η_motor × η_inverter × η_battery × η_blending = 0.95×0.97×0.95×0.85 ≈ 74.3%입니다.' },
+  'q4': { correct: 2,
+    feedback_ok: '✅ 정답! KE = ½Mv². 속도가 2배(v→2v)이면 KE = ½M(2v)² = 4 × ½Mv². 즉 4배가 됩니다!',
+    feedback_fail: '❌ 오답. KE = ½Mv²에서 v가 2배이면 v²는 4배가 됩니다. 따라서 KE도 4배. 에너지는 속도의 제곱에 비례합니다.' },
+  'q5': { correct: 1,
+    feedback_ok: '✅ 정답! Xu et al.(2019) 데이터: 0.05g→0.25g 시 회수율 28%→78% 증가, 승차감 6.8→2.1점 감소. 전형적 트레이드오프입니다.',
+    feedback_fail: '❌ 오답. 제동 강도 증가 → 더 많은 전류 → 회수율 증가(28%→78%). 하지만 저크(J=da/dt)가 증가 → 승차감 저하(6.8→2.1). Ref: Xu et al.(2019)' },
+  'q6': { correct: 1,
+    feedback_ok: '✅ 정답! 저크 J = da/dt(가속도의 변화율)가 크면 탑승자 몸이 급격히 앞뒤로 밀려 불쾌감이 발생합니다. ISO 2631 기준: |J|≤2.5 m/s³',
+    feedback_fail: '❌ 오답. 저크 J = da/dt = d²v/dt²는 가속도의 시간적 변화율입니다. J가 크면 가속도가 급변하여 탑승자가 앞뒤로 흔들려 불쾌감이 발생합니다.' },
+  'q7': { correct: 1,
+    feedback_ok: '✅ 정답! 원-페달(0.25g)은 승차감 2.1/7로 가장 낮고 저크가 ISO 2631 기준을 초과합니다. 에너지 회수율(78%)은 높지만 실용적 불편함이 큽니다.',
+    feedback_fail: '❌ 오답. 원-페달의 0.25g 감속은 강한 저크(J≫2.5 m/s³)를 유발하여 탑승자가 크게 불편함을 느낍니다. 승차감 점수 2.1/7(Xu et al.2019)이 이를 증명합니다.' },
+  'q8': { correct: 2,
+    feedback_ok: '✅ 정답! 회생제동은 전동기를 발전기로 활용합니다. 패러데이 법칙: 회전운동 → 자속변화 → 역기전력 → 전기에너지 발생 → 배터리 저장.',
+    feedback_fail: '❌ 오답. 회생제동에서 모터는 발전기로 작동합니다. 패러데이 전자기 유도 법칙에 의해 운동에너지 → 전기에너지로 변환되어 배터리에 저장됩니다.' },
+};
+
+const quizAnswered = {};
+
+function answerQuiz(qId, selectedIdx, group) {
+  if (quizAnswered[qId]) return;
+  quizAnswered[qId] = true;
+
+  const qa = QUIZ_ANSWERS[qId];
+  const isCorrect = selectedIdx === qa.correct;
+
+  const opts = document.querySelectorAll(`.quiz-opt[onclick*="${qId}"]`);
+  opts.forEach((opt, i) => {
+    if (i === qa.correct) opt.classList.add('correct');
+    else if (i === selectedIdx && !isCorrect) opt.classList.add('wrong');
+    opt.style.pointerEvents = 'none';
+  });
+
+  const fb = document.getElementById(qId + '-feedback');
+  fb.textContent = isCorrect ? qa.feedback_ok : qa.feedback_fail;
+  fb.className = `quiz-feedback show ${isCorrect ? 'ok' : 'fail'}`;
+
+  if (isCorrect) {
+    const cel = document.getElementById(qId + '-celebrate');
+    if (cel) { cel.classList.add('show'); setTimeout(() => cel.classList.remove('show'), 2500); }
+  }
+}
+
+/* ═══════════════════════════════════════════════════════
+   POPUP SYSTEM
+════════════════════════════════════════════════════════ */
+const POPUP_DATA = {
+  faraday: {
+    title: '⚡ 패러데이 전자기 유도 법칙',
+    content: '자기장 속에서 도체가 운동하면, 코일을 통과하는 자속(Φ)이 변화하여 기전력이 유도됩니다. 회생제동에서는 차량의 운동에너지로 모터 코일이 회전하며 전기를 생성합니다.',
+    formula: 'ε = -N × dΦ/dt\nE_back = K_e × ω_r = K_e × (v × G_r) / r_wheel',
+    ref: 'Ref: 패러데이(Faraday, 1831) / Kim & Park (2019) K_e = 0.048 V·s/rad'
+  },
+  speed: {
+    title: '📉 속도-시간 그래프',
+    content: '회생제동 중 차량 속도는 선택한 감속도(g)에 따라 선형 감소합니다. v(t) = v₀ - a·t. 감속도가 클수록 속도가 빠르게 감소하며, 이는 더 큰 역기전력 변화를 야기합니다.',
+    formula: 'v(t) = v₀ - a·t\na = deceleration × g (m/s²)',
+    ref: 'Ref: 뉴턴 운동 법칙 / ISO 2631 승차감 기준'
+  },
+  backemf: {
+    title: '⚡ 역기전력(Back-EMF) vs 시간',
+    content: '역기전력은 속도에 정확히 비례합니다. 차량이 감속할수록 모터 각속도(ω_r)가 감소하고, 역기전력도 동시에 감소합니다. 정지 시 역기전력 = 0.',
+    formula: 'E_back = K_e × ω_r\nω_r = v × G_r / r_wheel\n∴ E_back ∝ v',
+    ref: 'Ref: Kim & Park (2019), 역기전력 상수 K_e = 0.048 V·s/rad, G_r = 8.2'
+  },
+  energy: {
+    title: '🔋 누적 회생 에너지',
+    content: '회생제동으로 회수되는 에너지는 시간에 따라 누적됩니다. 속도가 높을 때 회수 전력이 크고, 속도 감소에 따라 회수 전력도 줄어듭니다. E = ∫P dt',
+    formula: 'P_regen = E_back × I × cos(φ) × η_total\nE_stored = ∫P_regen dt (Wh)\nη_total ≈ 0.743',
+    ref: 'Ref: Xu et al. (2019), Kim & Park (2019)'
+  },
+  lorentz: {
+    title: '⚛️ 로런츠 힘 → 제동력',
+    content: '전류가 흐르는 도체가 자기장 속에 있으면 힘을 받습니다. 회생제동에서 모터 코일의 전류와 자석의 자기장이 상호작용하여 회전에 반대되는 토크(제동 토크)를 생성합니다.',
+    formula: 'F = I × L × B (로런츠 힘)\nT_regen = K_e × I_phase\nF_brake = T_regen × G_r / r_wheel',
+    ref: 'Ref: 렌츠(Lenz, 1834) 법칙 — 유도 전류는 변화를 방해하는 방향으로 흐름'
+  },
+  comfort: {
+    title: '😊 승차감 점수 (Xu et al. 2019)',
+    content: '승차감은 7점 척도로 측정됩니다. 제동 강도가 증가할수록 저크(가속도 변화율)가 커져 탑승자의 불쾌감이 증가합니다. 5.0점 이상이 허용 기준입니다.',
+    formula: 'J = da/dt = d²v/dt²\n|J| ≤ 2.5 m/s³ (ISO 2631 기준)',
+    ref: 'Ref: Xu et al. (2019), 승차감 데이터 / ISO 2631 진동 노출 평가 기준'
+  },
+  regenrate: {
+    title: '⚡ 에너지 회수율',
+    content: '회수율은 마찰제동과 회생제동의 비율로 결정됩니다. 제동 강도가 클수록 더 큰 전류가 흐르고 더 많은 운동에너지를 전기에너지로 변환할 수 있습니다.',
+    formula: 'η_regen = P_regen / P_brake\n0.05g: 28% | 0.10g: 47% | 0.15g: 61%\n0.20g: 71% | 0.25g: 78%',
+    ref: 'Ref: Xu et al. (2019), 실험 데이터 기반 회수율 측정'
+  },
+  jerk: {
+    title: '📳 저크(Jerk) — ISO 2631',
+    content: '저크는 가속도의 시간적 변화율로 승차감의 핵심 지표입니다. 제동 시작 순간 가속도가 급변할 때 최대 저크가 발생합니다. ISO 2631 기준 ±2.5 m/s³ 이내여야 쾌적합니다.',
+    formula: 'J = da/dt = d²v/dt²  (단위: m/s³)\n|J| ≤ 2.5 m/s³ : 쾌적\n|J| > 2.5 m/s³ : 불쾌 (ISO 2631)',
+    ref: 'Ref: ISO 2631-1 진동 노출 평가 / Xu et al. (2019) 저크-승차감 상관 분석'
+  }
+};
+
+function showPopup(key) {
+  const data = POPUP_DATA[key];
+  if (!data) return;
+  document.getElementById('popup-title').textContent = data.title;
+  document.getElementById('popup-content').innerHTML = data.content;
+  document.getElementById('popup-ref').textContent = data.ref;
+
+  const fEl = document.querySelector('#popup-box .popup-formula');
+  if (fEl) fEl.remove();
+  const fDiv = document.createElement('div');
+  fDiv.className = 'popup-formula';
+  fDiv.textContent = data.formula;
+  document.getElementById('popup-content').after(fDiv);
+
+  document.getElementById('popup-overlay').classList.add('show');
+}
+
+function closePopup(e) {
+  if (e.target === document.getElementById('popup-overlay')) {
+    document.getElementById('popup-overlay').classList.remove('show');
+  }
+}
+
+/* ═══════════════════════════════════════════════════════
+   MODULE NAVIGATION & STATUS BAR
+════════════════════════════════════════════════════════ */
+const MODULE_STATUS = {
+  1: { concept: '패러데이 전자기 유도 법칙', text: '역기전력 E_back = K_e × ω_r — 속도 증가 → 각속도 증가 → 역기전력 증가 → 발전량 증가' },
+  2: { concept: '에너지 보존 법칙', text: '운동에너지 KE = ½Mv² → 모터→인버터→배터리 변환, η_total = 74.3% 배터리 저장' },
+  3: { concept: '로런츠 힘 & 렌츠 법칙', text: '제동력 F = I×L×B, T_regen = K_e×I — 전류 증가 → 제동 토크 증가, 저크 J=da/dt로 승차감 평가' },
+  4: { concept: '종합 시스템 최적화', text: '도심/고속도로 주행에서 전략별 에너지 회수량 비교 — 표준 전략(0.10g)이 효율-승차감 균형 최적' },
+};
+
+function showModule(n) {
+  document.querySelectorAll('.module').forEach(m => m.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('module' + n).classList.add('active');
+  document.querySelectorAll('.nav-btn')[n-1].classList.add('active');
+
+  const st = MODULE_STATUS[n];
+  document.getElementById('status-concept').textContent = st.concept;
+  document.getElementById('status-text').textContent = st.text;
+
+  // 각 모듈 초기화
+  if (n === 2) { updateM2(); }
+  if (n === 3) { updateM3(); }
+}
+
+/* ═══════════════════════════════════════════════════════
+   INITIALIZATION
+════════════════════════════════════════════════════════ */
+window.addEventListener('DOMContentLoaded', () => {
+
+  // 슬라이더 배경 초기화
+  document.querySelectorAll('input[type="range"]').forEach(updateSliderBG);
+
+  // 차트 초기화
+  initM1Charts();
+  initM2Charts();
+  initM3Charts();
+  initM4Charts();
+
+  // 초기 값 계산
+  updateM1Sliders();
+  updateM2();
+  updateM3();
+
+  // 슬라이더 변경 이벤트 추가
+  document.getElementById('m3-g').addEventListener('input', updateM3);
+
+  // 슬라이더 배경 업데이트 이벤트
+  document.querySelectorAll('input[type="range"]').forEach(slider => {
+    slider.addEventListener('input', () => updateSliderBG(slider));
+  });
+
+  // M1 차량 초기 애니메이션 (정적)
+  m1State.v = 80 / 3.6;
+  drawM1Car();
+
+  // M4 도로 초기 그리기
+  drawM4Road();
+
+  console.log('✅ EV 회생제동 시뮬레이션 초기화 완료');
+  console.log('물리 파라미터:', PHYSICS);
+});
+
+/* ═══════════════════════════════════════════════════════
+   RESIZE HANDLING
+════════════════════════════════════════════════════════ */
+window.addEventListener('resize', () => {
+  // 캔버스 리사이즈 대응
+  ['m1-anim-canvas', 'm4-road-canvas'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) {
+      // 캔버스는 CSS width로 제어됨
+    }
+  });
+});
+</script>
+</body>
+</html>
