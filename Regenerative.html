@@ -4,1579 +4,1304 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>EV 회생제동 시뮬레이션</title>
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <style>
-/* ═══ RESET & ROOT ═══ */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
 :root {
-  --bg:       #0d0d1a;
-  --bg2:      #13131f;
-  --bg3:      #1a1a2e;
-  --border:   #2a2a45;
-  --green:    #00e87a;
-  --blue:     #4a9eff;
-  --red:      #ff5252;
-  --yellow:   #ffd740;
-  --purple:   #b388ff;
-  --text:     #e8e8f0;
-  --muted:    #7878a0;
-  --card-r:   14px;
+  --bg:     #0e0e16;
+  --bg2:    #15151f;
+  --bg3:    #1c1c2a;
+  --border: #252535;
+  --green:  #00e676;
+  --blue:   #448aff;
+  --red:    #ff5252;
+  --yellow: #ffd740;
+  --text:   #e0e0f0;
+  --muted:  #6b6b90;
 }
+
 html, body {
   font-family: 'Segoe UI', 'Malgun Gothic', sans-serif;
   background: var(--bg);
   color: var(--text);
-  min-height: 100vh;
-  font-size: 14px;
-}
-
-/* ═══ LAYOUT ═══ */
-.app-wrap {
-  display: grid;
-  grid-template-rows: auto 1fr auto;
-  min-height: 100vh;
-}
-
-/* ═══ HEADER ═══ */
-.header {
-  background: var(--bg2);
-  border-bottom: 1px solid var(--border);
-  padding: 14px 24px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-}
-.header-left h1 {
-  font-size: 1.05rem;
-  font-weight: 700;
-  color: var(--green);
-  letter-spacing: 0.5px;
-}
-.header-left p {
-  font-size: 0.72rem;
-  color: var(--muted);
-  margin-top: 2px;
-}
-.tab-nav {
-  display: flex;
-  gap: 6px;
-}
-.tab-btn {
-  padding: 7px 16px;
-  border-radius: 8px;
-  border: 1px solid var(--border);
-  background: transparent;
-  color: var(--muted);
-  font-size: 0.78rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s;
-  white-space: nowrap;
-}
-.tab-btn:hover { border-color: var(--blue); color: var(--blue); }
-.tab-btn.active {
-  background: var(--green);
-  color: #000;
-  border-color: var(--green);
-  font-weight: 700;
-}
-
-/* ═══ MAIN BODY ═══ */
-.main {
-  display: grid;
-  grid-template-columns: 300px 1fr;
-  gap: 0;
+  height: 100vh;
   overflow: hidden;
 }
 
-/* ═══ LEFT PANEL ═══ */
-.left-panel {
+/* ── LAYOUT ── */
+.app {
+  display: grid;
+  grid-template-rows: 52px 1fr;
+  height: 100vh;
+}
+
+.header {
+  background: var(--bg2);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  padding: 0 24px;
+  gap: 12px;
+}
+.header-title {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--green);
+}
+.header-sub {
+  font-size: 0.72rem;
+  color: var(--muted);
+}
+
+.body {
+  display: grid;
+  grid-template-columns: 260px 1fr 220px;
+  overflow: hidden;
+}
+
+/* ── LEFT PANEL ── */
+.left {
   background: var(--bg2);
   border-right: 1px solid var(--border);
   padding: 20px 16px;
-  overflow-y: auto;
   display: flex;
   flex-direction: column;
-  gap: 18px;
-}
-
-/* ═══ RIGHT PANEL ═══ */
-.right-panel {
-  padding: 20px;
+  gap: 20px;
   overflow-y: auto;
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
 }
 
-/* ═══ SECTION TITLE ═══ */
-.section-title {
-  font-size: 0.68rem;
+.panel-label {
+  font-size: 0.62rem;
   font-weight: 700;
   letter-spacing: 1.5px;
   text-transform: uppercase;
   color: var(--muted);
-  margin-bottom: 10px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-.section-title::after {
-  content: '';
-  flex: 1;
-  height: 1px;
-  background: var(--border);
+  margin-bottom: 12px;
 }
 
-/* ═══ VARIABLE BADGE ═══ */
-.var-group {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-.var-badge {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 5px 0;
-  border-bottom: 1px solid var(--border);
-}
-.var-badge:last-child { border-bottom: none; }
-.var-dot {
-  width: 8px; height: 8px;
-  border-radius: 50%;
-  flex-shrink: 0;
-}
-.var-label {
-  font-size: 0.75rem;
-  color: var(--muted);
-  flex: 1;
-}
-.var-value {
-  font-size: 0.82rem;
-  font-weight: 700;
-  color: var(--text);
-  text-align: right;
-  min-width: 80px;
-}
+/* ── SLIDER ── */
+.sl-block { display: flex; flex-direction: column; gap: 6px; }
 
-/* ═══ SLIDER GROUP ═══ */
-.slider-block {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-.slider-header {
+.sl-row {
   display: flex;
   justify-content: space-between;
-  align-items: baseline;
+  align-items: center;
 }
-.slider-name {
-  font-size: 0.8rem;
-  color: var(--text);
-  font-weight: 600;
-}
-.slider-unit {
-  font-size: 0.7rem;
-  color: var(--muted);
-  margin-left: 4px;
-}
-.slider-val-badge {
+.sl-name { font-size: 0.78rem; color: var(--text); }
+.sl-val {
   font-size: 0.82rem;
   font-weight: 700;
   padding: 2px 10px;
   border-radius: 20px;
   background: var(--bg3);
   border: 1px solid var(--border);
-}
-.slider-track-wrap {
-  position: relative;
-  height: 28px;
-  display: flex;
-  align-items: center;
-}
-input[type="range"] {
-  width: 100%;
-  height: 4px;
-  -webkit-appearance: none;
-  appearance: none;
-  border-radius: 2px;
-  outline: none;
-  cursor: pointer;
-  background: var(--border);
-}
-input[type="range"].ind { accent-color: var(--blue); }
-input[type="range"].ctrl { accent-color: var(--purple); }
-input[type="range"]::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  width: 18px; height: 18px;
-  border-radius: 50%;
-  cursor: pointer;
-  box-shadow: 0 0 6px rgba(0,0,0,0.4);
-}
-input[type="range"].ind::-webkit-slider-thumb { background: var(--blue); }
-input[type="range"].ctrl::-webkit-slider-thumb { background: var(--purple); }
-.slider-range-labels {
-  display: flex;
-  justify-content: space-between;
-  font-size: 0.65rem;
-  color: var(--muted);
-  margin-top: 2px;
-}
-.slider-hint {
-  font-size: 0.7rem;
-  color: var(--yellow);
-  line-height: 1.4;
-  min-height: 18px;
-  padding: 2px 0;
-}
-
-/* ═══ CARDS ═══ */
-.card {
-  background: var(--bg2);
-  border: 1px solid var(--border);
-  border-radius: var(--card-r);
-  padding: 16px;
-}
-.card-title {
-  font-size: 0.78rem;
-  font-weight: 700;
-  color: var(--muted);
-  letter-spacing: 0.8px;
-  text-transform: uppercase;
-  margin-bottom: 14px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-.card-title .dot {
-  width: 6px; height: 6px;
-  border-radius: 50%;
-}
-
-/* ═══ KPI ROW ═══ */
-.kpi-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 10px;
-  margin-bottom: 4px;
-}
-.kpi-card {
-  background: var(--bg3);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 12px;
+  min-width: 64px;
   text-align: center;
 }
-.kpi-label {
-  font-size: 0.66rem;
-  color: var(--muted);
-  margin-bottom: 6px;
-  line-height: 1.3;
-}
-.kpi-value {
-  font-size: 1.25rem;
-  font-weight: 800;
-  line-height: 1;
-}
-.kpi-sub {
-  font-size: 0.62rem;
-  color: var(--muted);
-  margin-top: 4px;
-}
 
-/* ═══ CHART WRAPPER ═══ */
-.chart-wrap {
-  position: relative;
-}
-.chart-wrap canvas { display: block; }
-
-/* ═══ FORMULA STRIP ═══ */
-.formula-strip {
-  background: var(--bg3);
-  border: 1px solid var(--border);
-  border-left: 3px solid var(--green);
-  border-radius: 8px;
-  padding: 10px 14px;
-  font-size: 0.75rem;
-  line-height: 1.8;
-  color: var(--muted);
-}
-.formula-strip .hl { color: var(--green); font-weight: 700; }
-.formula-strip .bl { color: var(--blue); }
-.formula-strip .yl { color: var(--yellow); }
-
-/* ═══ DIVIDER VARIABLE LABELS ═══ */
-.var-type-row {
-  display: flex;
-  gap: 8px;
-  margin-bottom: 14px;
-}
-.var-type-pill {
-  padding: 4px 12px;
-  border-radius: 20px;
-  font-size: 0.68rem;
-  font-weight: 700;
-  letter-spacing: 0.5px;
-}
-.pill-ind { background: rgba(74,158,255,0.15); color: var(--blue); border: 1px solid rgba(74,158,255,0.3); }
-.pill-dep { background: rgba(0,232,122,0.12); color: var(--green); border: 1px solid rgba(0,232,122,0.25); }
-.pill-ctrl { background: rgba(179,136,255,0.12); color: var(--purple); border: 1px solid rgba(179,136,255,0.25); }
-
-/* ═══ TWO CHART GRID ═══ */
-.chart-grid-2 {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 14px;
-}
-.chart-grid-3 {
-  display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
-  gap: 12px;
-}
-
-/* ═══ MODULE PAGES ═══ */
-.module-page { display: none; }
-.module-page.active { display: flex; flex-direction: column; gap: 16px; }
-
-/* ═══ TABLE ═══ */
-.data-table {
+input[type=range] {
+  -webkit-appearance: none;
   width: 100%;
-  border-collapse: collapse;
-  font-size: 0.76rem;
+  height: 3px;
+  border-radius: 2px;
+  background: var(--border);
+  outline: none;
+  cursor: pointer;
 }
-.data-table th {
-  background: var(--bg3);
+input[type=range].blue::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 16px; height: 16px;
+  border-radius: 50%;
+  background: var(--blue);
+  cursor: pointer;
+  box-shadow: 0 0 8px rgba(68,138,255,0.6);
+}
+input[type=range].purple::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 14px; height: 14px;
+  border-radius: 50%;
+  background: #b388ff;
+  cursor: pointer;
+}
+.sl-hint {
+  font-size: 0.67rem;
   color: var(--muted);
-  padding: 8px 12px;
-  text-align: left;
-  border-bottom: 1px solid var(--border);
-  font-weight: 600;
-  font-size: 0.7rem;
-  letter-spacing: 0.5px;
+  line-height: 1.4;
+  min-height: 16px;
 }
-.data-table td {
-  padding: 8px 12px;
-  border-bottom: 1px solid rgba(42,42,69,0.5);
-  color: var(--text);
-}
-.data-table tr:hover td { background: rgba(255,255,255,0.02); }
-.data-table .num { text-align: right; font-weight: 600; font-family: monospace; }
-.data-table .green { color: var(--green); }
-.data-table .blue { color: var(--blue); }
-.data-table .yellow { color: var(--yellow); }
 
-/* ═══ ENERGY FLOW BAR ═══ */
-.flow-bar-wrap {
+.divider {
+  height: 1px;
+  background: var(--border);
+}
+
+/* ── PILL TAGS ── */
+.pill {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+}
+.pill-ind  { background: rgba(68,138,255,0.15); color: var(--blue);   border: 1px solid rgba(68,138,255,0.3); }
+.pill-ctrl { background: rgba(179,136,255,0.12); color: #b388ff;      border: 1px solid rgba(179,136,255,0.25); }
+
+/* ── CENTER ── */
+.center {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  gap: 16px;
+  overflow: hidden;
+}
+
+/* ── CANVAS SCENE ── */
+.scene-wrap {
+  position: relative;
+  width: 100%;
+  flex: 1;
+  min-height: 0;
+}
+#scene {
+  width: 100%;
+  height: 100%;
+  display: block;
+  border-radius: 14px;
+}
+
+/* ── ENERGY BAR (bottom of center) ── */
+.energy-section {
+  width: 100%;
   display: flex;
   flex-direction: column;
   gap: 8px;
 }
+
 .flow-row {
   display: flex;
   align-items: center;
   gap: 10px;
 }
-.flow-label {
-  width: 120px;
-  font-size: 0.72rem;
+.flow-lbl {
+  width: 110px;
+  font-size: 0.68rem;
   color: var(--muted);
   text-align: right;
   flex-shrink: 0;
 }
-.flow-bar-bg {
+.flow-track {
   flex: 1;
-  height: 20px;
+  height: 14px;
   background: var(--bg3);
   border-radius: 4px;
   overflow: hidden;
   border: 1px solid var(--border);
+  position: relative;
 }
-.flow-bar-fill {
+.flow-fill {
   height: 100%;
   border-radius: 4px;
-  transition: width 0.4s ease;
-  display: flex;
-  align-items: center;
-  padding-left: 6px;
-  font-size: 0.65rem;
-  font-weight: 700;
-  color: rgba(0,0,0,0.7);
+  transition: width 0.35s ease;
+  position: relative;
 }
-.flow-val {
-  width: 70px;
-  font-size: 0.74rem;
+.flow-num {
+  width: 58px;
+  font-size: 0.7rem;
   font-weight: 700;
   text-align: right;
-}
-
-/* ═══ STATUS FOOTER ═══ */
-.status-bar {
-  background: var(--bg2);
-  border-top: 1px solid var(--border);
-  padding: 8px 24px;
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  font-size: 0.72rem;
-  color: var(--muted);
-}
-.status-dot {
-  width: 7px; height: 7px;
-  border-radius: 50%;
-  background: var(--green);
-  box-shadow: 0 0 6px var(--green);
   flex-shrink: 0;
 }
-.status-formula {
-  color: var(--green);
-  font-weight: 600;
-  font-family: monospace;
+
+/* ── RIGHT PANEL ── */
+.right {
+  background: var(--bg2);
+  border-left: 1px solid var(--border);
+  padding: 20px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  overflow-y: auto;
 }
 
-/* ═══ SCROLLBAR ═══ */
-::-webkit-scrollbar { width: 5px; height: 5px; }
-::-webkit-scrollbar-track { background: var(--bg); }
-::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
-
-/* ═══ RESPONSIVE ═══ */
-@media (max-width: 900px) {
-  .main { grid-template-columns: 1fr; }
-  .left-panel { border-right: none; border-bottom: 1px solid var(--border); }
-  .chart-grid-2, .chart-grid-3 { grid-template-columns: 1fr; }
-  .kpi-grid { grid-template-columns: repeat(3,1fr); }
+.kpi {
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 12px 14px;
+}
+.kpi-label {
+  font-size: 0.62rem;
+  color: var(--muted);
+  margin-bottom: 6px;
+  line-height: 1.3;
+}
+.kpi-val {
+  font-size: 1.35rem;
+  font-weight: 800;
+  line-height: 1;
+}
+.kpi-unit {
+  font-size: 0.65rem;
+  color: var(--muted);
+  margin-top: 4px;
 }
 
-/* ═══ ANIMATION ═══ */
-@keyframes fadeUp {
-  from { opacity:0; transform:translateY(8px); }
-  to   { opacity:1; transform:translateY(0); }
+.formula-box {
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--green);
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-size: 0.68rem;
+  line-height: 1.9;
+  color: var(--muted);
+  font-family: 'Courier New', monospace;
 }
-.module-page.active { animation: fadeUp 0.25s ease; }
+.formula-box .g { color: var(--green); font-weight: 700; }
+.formula-box .b { color: var(--blue); }
+.formula-box .y { color: var(--yellow); }
 
-/* MODULE 4 - Sankey canvas */
-#sankeyCanvas { border-radius: 10px; background: var(--bg3); }
-
-/* separator */
-.sep { height: 1px; background: var(--border); margin: 4px 0; }
+/* ── SCROLLBAR ── */
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
 </style>
 </head>
 <body>
-<div class="app-wrap">
+<div class="app">
 
-<!-- ═══ HEADER ═══ -->
+<!-- HEADER -->
 <header class="header">
-  <div class="header-left">
-    <h1>⚡ EV 회생제동 시뮬레이션</h1>
-    <p>초기 속도(독립변인) → 회생 에너지 · 유도 기전력 · 효율(종속변인) 분석</p>
-  </div>
-  <nav class="tab-nav">
-    <button class="tab-btn active" onclick="showTab(1,this)">① V₀ → E_back</button>
-    <button class="tab-btn" onclick="showTab(2,this)">② 에너지 흐름</button>
-    <button class="tab-btn" onclick="showTab(3,this)">③ 속도별 비교</button>
-    <button class="tab-btn" onclick="showTab(4,this)">④ 종합 분석</button>
-  </nav>
+  <div class="header-title">⚡ EV 회생제동 시뮬레이션</div>
+  <div class="header-sub">초기 속도 → 유도 기전력 → 회생 에너지 실시간 시각화</div>
 </header>
 
-<!-- ═══ MAIN ═══ -->
-<div class="main">
+<div class="body">
 
-  <!-- ══════════════════════════════════
-       LEFT PANEL — 변인 컨트롤
-  ══════════════════════════════════ -->
-  <aside class="left-panel">
+  <!-- ══ LEFT: 변인 컨트롤 ══ -->
+  <aside class="left">
 
-    <!-- 변인 구분 pills -->
+    <!-- 독립변인 -->
     <div>
-      <div class="var-type-row">
-        <span class="var-type-pill pill-ind">01 독립변인</span>
-      </div>
+      <div class="panel-label"><span class="pill pill-ind">01 독립변인</span></div>
 
-      <div class="section-title">초기 운동 속도 V₀</div>
-      <div class="slider-block">
-        <div class="slider-header">
-          <span class="slider-name">V₀<span class="slider-unit">km/h</span></span>
-          <span class="slider-val-badge" id="v0-badge" style="color:var(--blue)">80</span>
+      <div class="sl-block">
+        <div class="sl-row">
+          <span class="sl-name">초기 속도 V₀</span>
+          <span class="sl-val" id="v0-val" style="color:var(--blue)">80 km/h</span>
         </div>
-        <input type="range" class="ind" id="sl-v0" min="10" max="120" value="80" step="5">
-        <div class="slider-range-labels"><span>10</span><span>120</span></div>
-        <div class="slider-hint" id="hint-v0">속도가 높을수록 역기전력과 회생 에너지가 증가합니다</div>
+        <input type="range" class="blue" id="sl-v0" min="10" max="120" value="80" step="5">
+        <div class="sl-hint" id="hint-v0">속도↑ → 역기전력↑ → 회생 에너지↑</div>
       </div>
     </div>
 
-    <div class="sep"></div>
+    <div class="divider"></div>
 
+    <!-- 통제변인 -->
     <div>
-      <div class="var-type-row">
-        <span class="var-type-pill pill-ctrl">03 통제변인</span>
+      <div class="panel-label"><span class="pill pill-ctrl">03 통제변인</span></div>
+
+      <div class="sl-block" style="margin-bottom:14px">
+        <div class="sl-row">
+          <span class="sl-name">차량 질량 m</span>
+          <span class="sl-val" id="mass-val" style="color:#b388ff">1800 kg</span>
+        </div>
+        <input type="range" class="purple" id="sl-mass" min="1000" max="3000" value="1800" step="100">
+        <div class="sl-hint" id="hint-mass">질량 고정 → 에너지는 속도만으로 결정</div>
       </div>
 
-      <div class="section-title">고정 파라미터</div>
-
-      <div class="slider-block">
-        <div class="slider-header">
-          <span class="slider-name">차량 질량 m<span class="slider-unit">kg</span></span>
-          <span class="slider-val-badge" id="mass-badge" style="color:var(--purple)">1800</span>
+      <div class="sl-block" style="margin-bottom:14px">
+        <div class="sl-row">
+          <span class="sl-name">기준 전압 V<sub>set</sub></span>
+          <span class="sl-val" id="vset-val" style="color:#b388ff">360 V</span>
         </div>
-        <input type="range" class="ctrl" id="sl-mass" min="1000" max="3000" value="1800" step="100">
-        <div class="slider-range-labels"><span>1000</span><span>3000</span></div>
-        <div class="slider-hint" id="hint-mass">질량 고정 → 에너지는 속도에 의해서만 결정됨</div>
+        <input type="range" class="purple" id="sl-vset" min="200" max="500" value="360" step="10">
+        <div class="sl-hint" id="hint-vset">발전 전압 > V_set 이어야 충전 가능</div>
       </div>
 
-      <div class="slider-block">
-        <div class="slider-header">
-          <span class="slider-name">기준 전압 V<sub>set</sub><span class="slider-unit">V</span></span>
-          <span class="slider-val-badge" id="vset-badge" style="color:var(--purple)">360</span>
+      <div class="sl-block">
+        <div class="sl-row">
+          <span class="sl-name">회로 저항 R</span>
+          <span class="sl-val" id="res-val" style="color:#b388ff">0.15 Ω</span>
         </div>
-        <input type="range" class="ctrl" id="sl-vset" min="200" max="500" value="360" step="10">
-        <div class="slider-range-labels"><span>200</span><span>500</span></div>
-        <div class="slider-hint" id="hint-vset">발전 전압이 기준 전압보다 높아야 충전 가능</div>
-      </div>
-
-      <div class="slider-block">
-        <div class="slider-header">
-          <span class="slider-name">회로 저항 R<span class="slider-unit">Ω</span></span>
-          <span class="slider-val-badge" id="res-badge" style="color:var(--purple)">0.15</span>
-        </div>
-        <input type="range" class="ctrl" id="sl-res" min="5" max="50" value="15" step="1">
-        <div class="slider-range-labels"><span>0.05 Ω</span><span>0.50 Ω</span></div>
-        <div class="slider-hint" id="hint-res">저항 증가 → 동손 증가 → 효율 감소</div>
+        <input type="range" class="purple" id="sl-res" min="5" max="50" value="15" step="1">
+        <div class="sl-hint" id="hint-res">저항↑ → 동손↑ → 효율↓</div>
       </div>
     </div>
 
-    <div class="sep"></div>
+    <div class="divider"></div>
 
-    <!-- 종속변인 실시간 표시 -->
-    <div>
-      <div class="var-type-row">
-        <span class="var-type-pill pill-dep">02 종속변인</span>
-      </div>
-      <div class="section-title">실시간 계산값</div>
-      <div class="var-group">
-        <div class="var-badge">
-          <div class="var-dot" style="background:var(--green)"></div>
-          <span class="var-label">회생 에너지 E</span>
-          <span class="var-value" id="kpi-e" style="color:var(--green)">— Wh</span>
-        </div>
-        <div class="var-badge">
-          <div class="var-dot" style="background:var(--blue)"></div>
-          <span class="var-label">최대 유도 기전력 V_max</span>
-          <span class="var-value" id="kpi-vmax" style="color:var(--blue)">— V</span>
-        </div>
-        <div class="var-badge">
-          <div class="var-dot" style="background:var(--yellow)"></div>
-          <span class="var-label">에너지 회수 효율 η</span>
-          <span class="var-value" id="kpi-eta" style="color:var(--yellow)">— %</span>
-        </div>
-        <div class="var-badge">
-          <div class="var-dot" style="background:var(--muted)"></div>
-          <span class="var-label">총 운동에너지 KE</span>
-          <span class="var-value" id="kpi-ke">— Wh</span>
-        </div>
-        <div class="var-badge">
-          <div class="var-dot" style="background:var(--muted)"></div>
-          <span class="var-label">최대 전류 I_max</span>
-          <span class="var-value" id="kpi-imax">— A</span>
-        </div>
-        <div class="var-badge">
-          <div class="var-dot" style="background:var(--red)"></div>
-          <span class="var-label">총 손실 에너지</span>
-          <span class="var-value" id="kpi-loss" style="color:var(--red)">— Wh</span>
-        </div>
-      </div>
-    </div>
-
-    <!-- 수식 박스 -->
-    <div class="formula-strip">
-      <div class="hl">핵심 수식</div>
-      <div>KE = <span class="bl">½ × m × v²</span></div>
-      <div>V_max = <span class="bl">K_e × (V₀ × G_r / r)</span></div>
-      <div>E_stored = <span class="hl">KE × η_total</span></div>
-      <div>η = <span class="yl">η_m × η_inv × η_bat × η_br</span></div>
-      <div style="margin-top:4px;font-size:0.68rem;color:var(--muted)">
-        K_e=0.048 · G_r=8.2 · r=0.316m · η≈74.3%
+    <!-- 수식 -->
+    <div class="formula-box">
+      <div class="g">핵심 수식</div>
+      <div>V_emf = <span class="b">K_e × ω_r</span></div>
+      <div>ω_r = <span class="b">V₀ × Gᵣ / r</span></div>
+      <div>KE = <span class="b">½ m v²</span></div>
+      <div>E = <span class="g">KE × η_total</span></div>
+      <div style="margin-top:4px;font-size:0.62rem;color:#444466">
+        K_e=0.048 · Gᵣ=8.2 · r=0.316m<br>
+        η=0.95×0.97×0.95×0.85≈<span class="y">74.3%</span>
       </div>
     </div>
 
   </aside>
 
-  <!-- ══════════════════════════════════
-       RIGHT PANEL — 탭별 시각화
-  ══════════════════════════════════ -->
-  <div class="right-panel">
+  <!-- ══ CENTER: 시각 시뮬레이션 ══ -->
+  <main class="center">
 
-    <!-- ── TAB 1: V₀ → E_back 관계 ── -->
-    <div class="module-page active" id="tab1">
-
-      <div class="kpi-grid">
-        <div class="kpi-card">
-          <div class="kpi-label">최대 유도 기전력<br>V_max</div>
-          <div class="kpi-value" id="t1-vmax" style="color:var(--blue)">—</div>
-          <div class="kpi-sub">V</div>
-        </div>
-        <div class="kpi-card">
-          <div class="kpi-label">회생 에너지<br>E_stored</div>
-          <div class="kpi-value" id="t1-e" style="color:var(--green)">—</div>
-          <div class="kpi-sub">Wh</div>
-        </div>
-        <div class="kpi-card">
-          <div class="kpi-label">에너지 회수 효율<br>η</div>
-          <div class="kpi-value" id="t1-eta" style="color:var(--yellow)">—</div>
-          <div class="kpi-sub">%</div>
-        </div>
-      </div>
-
-      <!-- 역기전력 vs 시간 -->
-      <div class="card">
-        <div class="card-title">
-          <div class="dot" style="background:var(--blue)"></div>
-          유도 기전력(V_emf) vs 제동 시간
-        </div>
-        <div class="chart-wrap" style="height:220px">
-          <canvas id="chart-emf-time"></canvas>
-        </div>
-      </div>
-
-      <div class="chart-grid-2">
-        <!-- 속도 vs 시간 -->
-        <div class="card">
-          <div class="card-title">
-            <div class="dot" style="background:var(--blue)"></div>
-            속도 vs 제동 시간
-          </div>
-          <div class="chart-wrap" style="height:180px">
-            <canvas id="chart-speed-time"></canvas>
-          </div>
-        </div>
-        <!-- 전류 vs 시간 -->
-        <div class="card">
-          <div class="card-title">
-            <div class="dot" style="background:var(--red)"></div>
-            유도 전류(I) vs 제동 시간
-          </div>
-          <div class="chart-wrap" style="height:180px">
-            <canvas id="chart-curr-time"></canvas>
-          </div>
-        </div>
-      </div>
-
-      <!-- 누적 에너지 -->
-      <div class="card">
-        <div class="card-title">
-          <div class="dot" style="background:var(--green)"></div>
-          누적 회생 에너지(E_stored) vs 제동 시간
-        </div>
-        <div class="chart-wrap" style="height:180px">
-          <canvas id="chart-energy-time"></canvas>
-        </div>
-      </div>
-
+    <div class="scene-wrap">
+      <canvas id="scene"></canvas>
     </div>
 
-    <!-- ── TAB 2: 에너지 흐름 ── -->
-    <div class="module-page" id="tab2">
-
-      <div class="kpi-grid">
-        <div class="kpi-card">
-          <div class="kpi-label">총 운동에너지 KE</div>
-          <div class="kpi-value" id="t2-ke" style="color:var(--blue)">—</div>
-          <div class="kpi-sub">Wh</div>
+    <!-- 에너지 흐름 바 -->
+    <div class="energy-section">
+      <div style="font-size:0.65rem;color:var(--muted);letter-spacing:1px;text-transform:uppercase;margin-bottom:2px">에너지 흐름</div>
+      <div class="flow-row">
+        <div class="flow-lbl">운동에너지 KE</div>
+        <div class="flow-track">
+          <div class="flow-fill" id="bar-ke" style="background:#448aff;width:100%"></div>
         </div>
-        <div class="kpi-card">
-          <div class="kpi-label">배터리 저장 E</div>
-          <div class="kpi-value" id="t2-e" style="color:var(--green)">—</div>
-          <div class="kpi-sub">Wh</div>
-        </div>
-        <div class="kpi-card">
-          <div class="kpi-label">총 손실 에너지</div>
-          <div class="kpi-value" id="t2-loss" style="color:var(--red)">—</div>
-          <div class="kpi-sub">Wh</div>
-        </div>
+        <div class="flow-num" id="num-ke" style="color:var(--blue)">— Wh</div>
       </div>
-
-      <!-- 에너지 흐름 막대 -->
-      <div class="card">
-        <div class="card-title">
-          <div class="dot" style="background:var(--green)"></div>
-          단계별 에너지 흐름 (에너지 보존 법칙)
+      <div class="flow-row">
+        <div class="flow-lbl">모터 변환 후</div>
+        <div class="flow-track">
+          <div class="flow-fill" id="bar-motor" style="background:#00c9a7;width:95%"></div>
         </div>
-        <div class="flow-bar-wrap" id="flow-bars">
-          <!-- JS로 채움 -->
-        </div>
+        <div class="flow-num" id="num-motor" style="color:#00c9a7">— Wh</div>
       </div>
-
-      <!-- 도넛 차트 -->
-      <div class="chart-grid-2">
-        <div class="card">
-          <div class="card-title">
-            <div class="dot" style="background:var(--green)"></div>
-            에너지 배분 (도넛)
-          </div>
-          <div class="chart-wrap" style="height:220px">
-            <canvas id="chart-donut"></canvas>
-          </div>
+      <div class="flow-row">
+        <div class="flow-lbl">인버터 후</div>
+        <div class="flow-track">
+          <div class="flow-fill" id="bar-inv" style="background:#00b09b;width:92%"></div>
         </div>
-        <div class="card">
-          <div class="card-title">
-            <div class="dot" style="background:var(--blue)"></div>
-            단계별 효율 누적
-          </div>
-          <div class="chart-wrap" style="height:220px">
-            <canvas id="chart-eff-steps"></canvas>
-          </div>
-        </div>
+        <div class="flow-num" id="num-inv" style="color:#00b09b">— Wh</div>
       </div>
-
+      <div class="flow-row">
+        <div class="flow-lbl">배터리 저장</div>
+        <div class="flow-track">
+          <div class="flow-fill" id="bar-bat" style="background:var(--green);width:74%"></div>
+        </div>
+        <div class="flow-num" id="num-bat" style="color:var(--green)">— Wh</div>
+      </div>
     </div>
 
-    <!-- ── TAB 3: 속도별 비교 ── -->
-    <div class="module-page" id="tab3">
+  </main>
 
-      <!-- V₀ → E_stored 비례 그래프 (핵심!) -->
-      <div class="card">
-        <div class="card-title">
-          <div class="dot" style="background:var(--green)"></div>
-          독립변인(V₀) → 종속변인 관계 그래프
-        </div>
-        <div class="chart-wrap" style="height:260px">
-          <canvas id="chart-v0-dep"></canvas>
-        </div>
-      </div>
-
-      <div class="chart-grid-2">
-        <div class="card">
-          <div class="card-title">
-            <div class="dot" style="background:var(--blue)"></div>
-            V₀ → V_max (선형 비례)
-          </div>
-          <div class="chart-wrap" style="height:200px">
-            <canvas id="chart-v0-vmax"></canvas>
-          </div>
-        </div>
-        <div class="card">
-          <div class="card-title">
-            <div class="dot" style="background:var(--yellow)"></div>
-            V₀ → 회수 에너지 (2차 비례)
-          </div>
-          <div class="chart-wrap" style="height:200px">
-            <canvas id="chart-v0-e"></canvas>
-          </div>
-        </div>
-      </div>
-
-      <!-- 데이터 표 -->
-      <div class="card">
-        <div class="card-title">
-          <div class="dot" style="background:var(--muted)"></div>
-          속도별 종속변인 데이터 테이블
-        </div>
-        <table class="data-table" id="compare-table">
-          <thead>
-            <tr>
-              <th>V₀ (km/h)</th>
-              <th>KE (Wh)</th>
-              <th>V_max (V)</th>
-              <th>E_stored (Wh)</th>
-              <th>효율 η (%)</th>
-            </tr>
-          </thead>
-          <tbody id="compare-tbody"></tbody>
-        </table>
-      </div>
-
+  <!-- ══ RIGHT: KPI ══ -->
+  <aside class="right">
+    <div style="font-size:0.62rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted)">
+      <span class="pill" style="background:rgba(0,230,118,0.12);color:var(--green);border:1px solid rgba(0,230,118,0.25)">02 종속변인</span>
     </div>
 
-    <!-- ── TAB 4: 종합 분석 ── -->
-    <div class="module-page" id="tab4">
-
-      <!-- 저항 변화 효과 -->
-      <div class="card">
-        <div class="card-title">
-          <div class="dot" style="background:var(--purple)"></div>
-          통제변인(R) 변화 → 효율 & 손실 영향
-        </div>
-        <div class="chart-wrap" style="height:230px">
-          <canvas id="chart-r-effect"></canvas>
-        </div>
-      </div>
-
-      <!-- Vset 임계값 분석 -->
-      <div class="card">
-        <div class="card-title">
-          <div class="dot" style="background:var(--yellow)"></div>
-          기준 전압(V_set) vs 충전 가능 속도 임계값
-        </div>
-        <div class="chart-wrap" style="height:200px">
-          <canvas id="chart-vset-thresh"></canvas>
-        </div>
-        <div id="vset-status" style="margin-top:10px;font-size:0.78rem;text-align:center"></div>
-      </div>
-
-      <!-- 3변인 요약 -->
-      <div class="card">
-        <div class="card-title">
-          <div class="dot" style="background:var(--green)"></div>
-          3가지 변인 종합 요약
-        </div>
-        <div class="chart-wrap" style="height:220px">
-          <canvas id="chart-summary-radar"></canvas>
-        </div>
-      </div>
-
+    <div class="kpi">
+      <div class="kpi-label">회생 에너지 E_stored</div>
+      <div class="kpi-val" id="kpi-e" style="color:var(--green)">—</div>
+      <div class="kpi-unit">Wh (배터리 저장량)</div>
     </div>
 
-  </div><!-- end right-panel -->
-</div><!-- end main -->
+    <div class="kpi">
+      <div class="kpi-label">최대 유도 기전력 V_max</div>
+      <div class="kpi-val" id="kpi-vmax" style="color:var(--blue)">—</div>
+      <div class="kpi-unit">V (제동 시작 순간)</div>
+    </div>
 
-<!-- ═══ STATUS BAR ═══ -->
-<div class="status-bar">
-  <div class="status-dot"></div>
-  <span id="status-formula" class="status-formula">E_back = K_e × ω_r = 0.048 × (V₀ × 8.2 / 0.316)</span>
-  <span style="margin-left:auto;color:var(--muted)">패러데이 전자기 유도 법칙 | 에너지 보존 법칙 | Ref: Kim &amp; Park (2019)</span>
+    <div class="kpi">
+      <div class="kpi-label">에너지 회수 효율 η</div>
+      <div class="kpi-val" id="kpi-eta" style="color:var(--yellow)">—</div>
+      <div class="kpi-unit">% (KE 대비)</div>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="kpi">
+      <div class="kpi-label">총 운동에너지 KE</div>
+      <div class="kpi-val" id="kpi-ke" style="color:var(--muted);font-size:1rem">—</div>
+      <div class="kpi-unit">Wh</div>
+    </div>
+
+    <div class="kpi">
+      <div class="kpi-label">최대 전류 I_max</div>
+      <div class="kpi-val" id="kpi-imax" style="color:var(--muted);font-size:1rem">—</div>
+      <div class="kpi-unit">A</div>
+    </div>
+
+    <div class="kpi">
+      <div class="kpi-label">손실 에너지</div>
+      <div class="kpi-val" id="kpi-loss" style="color:var(--red);font-size:1rem">—</div>
+      <div class="kpi-unit">Wh</div>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- 충전 가능 여부 -->
+    <div id="charge-status" style="
+      padding:10px 12px;
+      border-radius:8px;
+      font-size:0.74rem;
+      font-weight:600;
+      text-align:center;
+      transition: all 0.3s;
+    ">—</div>
+
+  </aside>
+
+</div>
 </div>
 
-</div><!-- end app-wrap -->
-
 <script>
-/* ════════════════════════════════════════════════════════
-   PHYSICS CONSTANTS  (논문 기반 고정값)
-   Ref: Kim & Park (2019), Xu et al. (2019)
-════════════════════════════════════════════════════════ */
-const P = {
-  K_e:     0.048,   // 역기전력 상수 (V·s/rad)
-  G_r:     8.2,     // 감속비
-  r:       0.316,   // 타이어 반경 (m)
-  R0:      0.15,    // 기본 동손 저항 (Ω)
-  eta_m:   0.95,    // 모터 효율
-  eta_inv: 0.97,    // 인버터 효율
-  eta_bat: 0.95,    // 배터리 효율
-  eta_br:  0.85,    // 협조제동 효율
-  a_dec:   0.10*9.81, // 기본 감속도 (m/s²)
+/* ════════════════════════════════
+   PHYSICS CONSTANTS
+════════════════════════════════ */
+const PHY = {
+  K_e:     0.048,
+  G_r:     8.2,
+  r:       0.316,
+  eta_m:   0.95,
+  eta_inv: 0.97,
+  eta_bat: 0.95,
+  eta_br:  0.85,
 };
-P.eta_total = P.eta_m * P.eta_inv * P.eta_bat * P.eta_br; // ≈ 0.7428
+PHY.eta = PHY.eta_m * PHY.eta_inv * PHY.eta_bat * PHY.eta_br; // 0.7428
 
-/* ════════════════════════════════════════════════════════
-   SLIDER STATE
-════════════════════════════════════════════════════════ */
-let S = {
-  v0:   80,    // km/h  (독립변인)
-  mass: 1800,  // kg    (통제)
-  vset: 360,   // V     (통제)
-  res:  0.15,  // Ω     (통제)
-};
+/* ════════════════════════════════
+   STATE
+════════════════════════════════ */
+let S = { v0:80, mass:1800, vset:360, res:0.15 };
 
-/* ════════════════════════════════════════════════════════
-   PHYSICS CALCULATIONS
-════════════════════════════════════════════════════════ */
-
-// 각속도
-const omega = v_ms => (v_ms * P.G_r) / P.r;
-
-// 최대 유도 기전력 (초기 속도에서)
-// Ref: Kim & Park (2019)
-const vmax_emf = v_ms => P.K_e * omega(v_ms);
-
-// 총 운동에너지 (Joules → Wh)
-const kinetic_wh = (m, v_ms) => 0.5 * m * v_ms * v_ms / 3600;
-
-// 유도 전류 (역기전력 기반)
-const i_phase = (emf, R) => {
-  const dV = Math.max(0, emf - 0); // 실제 회로에서 배터리 역전압 제외 단순화
-  return dV / (R + 0.5);           // 인덕턴스 모델 0.5Ω 추가
+// 애니메이션 상태
+let anim = {
+  t: 0,
+  running: false,
+  rafId: null,
+  // 차량 위치 (시뮬 좌표)
+  carX: 0,
+  // 현재 속도 (m/s)
+  v: 0,
+  v0: 0,
+  // 누적 에너지
+  E_acc: 0,
+  // 배터리 SOC (0~1, 시각용)
+  soc: 0.6,
+  // 파티클
+  particles: [],
+  // 볼트 이펙트
+  bolts: [],
+  // 바퀴 각도
+  wheelAngle: 0,
 };
 
-// 회생 전력
-const p_regen = (emf, I) => {
-  const P_loss = I * I * S.res + 200; // 동손 + 철손
-  return Math.max(0, emf * I * 0.95 - P_loss) * P.eta_inv * P.eta_bat;
-};
-
-// 전체 제동 시간 시계열 계산
-function buildTimeSeries(v0_ms, a_dec, m, R) {
-  const dt = 0.05; // s
-  const t_stop = v0_ms / a_dec;
-  const times=[], speeds=[], emfs=[], currents=[], powers=[];
-  let E_acc = 0;
-  const energies = [];
-
-  for (let t = 0; t <= t_stop + dt; t += dt) {
-    const v = Math.max(0, v0_ms - a_dec * t);
-    const emf = vmax_emf(v);
-    const I = i_phase(emf, R);
-    const pr = p_regen(emf, I);
-
-    times.push(+t.toFixed(2));
-    speeds.push(+(v * 3.6).toFixed(2));  // km/h
-    emfs.push(+emf.toFixed(2));
-    currents.push(+I.toFixed(2));
-    powers.push(+pr.toFixed(1));
-    E_acc += pr * dt / 3600; // Wh
-    energies.push(+E_acc.toFixed(4));
-  }
-  return { times, speeds, emfs, currents, powers, energies };
+/* ════════════════════════════════
+   PHYSICS CALC
+════════════════════════════════ */
+function vmax_emf(v_ms) {
+  return PHY.K_e * (v_ms * PHY.G_r / PHY.r);
+}
+function ke_wh(m, v_ms) {
+  return 0.5 * m * v_ms * v_ms / 3600;
+}
+function i_max(emf, R) {
+  return Math.max(0, emf / (R + 0.5));
+}
+function calcStored(ke, vmax) {
+  const chargeFactor = Math.min(1, Math.max(0, (vmax - S.vset * 0.3) / (S.vset * 0.7)));
+  return ke * PHY.eta * chargeFactor;
 }
 
-// 현재 슬라이더로 모든 계산
 function calcAll() {
-  const v0_ms = S.v0 / 3.6;
-  const KE = kinetic_wh(S.mass, v0_ms);
-  const Vmax = vmax_emf(v0_ms);
-  const I_max = i_phase(Vmax, S.res);
-  const E_stored = KE * P.eta_total * Math.min(1, Vmax / S.vset * 0.95);
-  const eta_eff = KE > 0 ? (E_stored / KE) * 100 : 0;
-  const E_loss = KE - E_stored;
-  return { KE, Vmax, I_max, E_stored, eta_eff, E_loss, v0_ms };
+  const v_ms  = S.v0 / 3.6;
+  const KE    = ke_wh(S.mass, v_ms);
+  const Vmax  = vmax_emf(v_ms);
+  const Imax  = i_max(Vmax, S.res);
+  const E     = calcStored(KE, Vmax);
+  const eta   = KE > 0 ? (E / KE) * 100 : 0;
+  const loss  = KE - E;
+  return { KE, Vmax, Imax, E, eta, loss };
 }
 
-/* ════════════════════════════════════════════════════════
-   CHART INSTANCES
-════════════════════════════════════════════════════════ */
-const CHARTS = {};
+/* ════════════════════════════════
+   CANVAS SCENE
+════════════════════════════════ */
+const canvas = document.getElementById('scene');
+const ctx    = canvas.getContext('2d');
 
-const CHART_DEFAULTS = {
-  responsive: true,
-  maintainAspectRatio: false,
-  animation: false,
-  plugins: {
-    legend: { display: true, labels: { color:'#7878a0', font:{size:10}, boxWidth:10 } }
-  },
-  scales: {
-    x: {
-      ticks: { color:'#7878a0', font:{size:9}, maxTicksLimit:8 },
-      grid: { color:'rgba(42,42,69,0.8)' }
-    },
-    y: {
-      ticks: { color:'#7878a0', font:{size:9} },
-      grid: { color:'rgba(42,42,69,0.8)' }
+function resize() {
+  const wrap = canvas.parentElement;
+  canvas.width  = wrap.clientWidth;
+  canvas.height = wrap.clientHeight;
+}
+window.addEventListener('resize', () => { resize(); });
+resize();
+
+// 파티클 생성 (회생 에너지 = 초록 스파크)
+function spawnParticle(x, y, color) {
+  anim.particles.push({
+    x, y,
+    vx: (Math.random() - 0.5) * 3,
+    vy: -Math.random() * 4 - 1,
+    life: 1,
+    color,
+    size: Math.random() * 4 + 2,
+  });
+}
+
+// 번개 이펙트
+function spawnBolt(x1,y1,x2,y2) {
+  anim.bolts.push({ x1,y1,x2,y2, life:1 });
+}
+
+/* ────────────────────────────────
+   DRAW SCENE (called every RAF)
+──────────────────────────────── */
+function drawScene(calc) {
+  const W = canvas.width, H = canvas.height;
+  ctx.clearRect(0, 0, W, H);
+
+  // ── 배경 ──
+  const sky = ctx.createLinearGradient(0,0,0,H*0.55);
+  sky.addColorStop(0, '#090912');
+  sky.addColorStop(1, '#111120');
+  ctx.fillStyle = sky;
+  ctx.fillRect(0, 0, W, H);
+
+  // 별
+  ctx.fillStyle = 'rgba(255,255,255,0.35)';
+  const stars = [[0.1,0.05],[0.25,0.08],[0.45,0.03],[0.65,0.1],[0.8,0.04],[0.92,0.07]];
+  stars.forEach(([sx,sy]) => {
+    ctx.beginPath();
+    ctx.arc(sx*W, sy*H, 1.2, 0, Math.PI*2);
+    ctx.fill();
+  });
+
+  // ── 도로 ──
+  const roadY = H * 0.60;
+  const roadH = H * 0.40;
+
+  // 도로 몸체
+  const road = ctx.createLinearGradient(0, roadY, 0, H);
+  road.addColorStop(0, '#1a1a2a');
+  road.addColorStop(1, '#0e0e18');
+  ctx.fillStyle = road;
+  ctx.fillRect(0, roadY, W, roadH);
+
+  // 도로 경계선
+  ctx.strokeStyle = '#2a2a3a';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(0, roadY); ctx.lineTo(W, roadY);
+  ctx.stroke();
+
+  // 차선 (달리는 애니메이션)
+  const dashOff = (anim.t * 80) % 80;
+  ctx.setLineDash([50, 30]);
+  ctx.lineDashOffset = -dashOff;
+  ctx.strokeStyle = 'rgba(255,220,50,0.25)';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(0, roadY + roadH * 0.45);
+  ctx.lineTo(W, roadY + roadH * 0.45);
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  // 원근감 가이드라인
+  ctx.strokeStyle = 'rgba(255,255,255,0.03)';
+  ctx.lineWidth = 1;
+  [0.15, 0.30, 0.60, 0.85].forEach(f => {
+    ctx.beginPath();
+    ctx.moveTo(W*0.5, roadY);
+    ctx.lineTo(W*f, H);
+    ctx.stroke();
+  });
+
+  // ── 차량 위치 ──
+  const carW = Math.min(W * 0.22, 180);
+  const carH = carW * 0.45;
+  const carX = W * 0.38;
+  const carY = roadY - carH * 0.6;
+
+  // 회생제동 중 차량 진동 효과
+  const v_ms = anim.v;
+  const brakingIntensity = anim.running ? (1 - v_ms / anim.v0) : 0;
+  const jitter = anim.running && v_ms > 0.5
+    ? Math.sin(anim.t * 40) * brakingIntensity * 1.5
+    : 0;
+
+  drawCar(ctx, carX, carY + jitter, carW, carH, calc, brakingIntensity);
+
+  // ── 도로 위 배경 산/빌딩 ──
+  drawBackground(ctx, W, roadY);
+
+  // ── 에너지 이펙트 (파티클) ──
+  if (anim.running && v_ms > 1) {
+    const intensity = v_ms / anim.v0;
+    if (Math.random() < intensity * 0.6) {
+      const px = carX + carW * 0.1 + Math.random() * carW * 0.3;
+      const py = carY + carH * 0.3 + Math.random() * carH * 0.3;
+      spawnParticle(px, py, '#00e676');
+    }
+    // 배터리 방향 번개
+    if (Math.random() < intensity * 0.2) {
+      spawnBolt(
+        carX + carW * 0.7, carY + carH * 0.3,
+        carX + carW * 1.4 + Math.random()*20, carY + carH * 0.2
+      );
     }
   }
-};
 
-function makeChart(id, type, data, extraOpts={}) {
-  const ctx = document.getElementById(id);
-  if (!ctx) return null;
-  if (CHARTS[id]) CHARTS[id].destroy();
-  CHARTS[id] = new Chart(ctx, {
-    type,
-    data,
-    options: deepMerge(CHART_DEFAULTS, extraOpts)
+  // 파티클 업데이트 & 그리기
+  anim.particles = anim.particles.filter(p => p.life > 0);
+  anim.particles.forEach(p => {
+    p.x += p.vx; p.y += p.vy;
+    p.vy += 0.12; // gravity
+    p.life -= 0.035;
+    ctx.save();
+    ctx.globalAlpha = Math.max(0, p.life);
+    ctx.fillStyle = p.color;
+    ctx.shadowColor = p.color;
+    ctx.shadowBlur = 8;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, p.size * p.life, 0, Math.PI*2);
+    ctx.fill();
+    ctx.restore();
   });
-  return CHARTS[id];
+
+  // 번개 그리기
+  anim.bolts = anim.bolts.filter(b => b.life > 0);
+  anim.bolts.forEach(b => {
+    b.life -= 0.12;
+    drawBolt(ctx, b.x1, b.y1, b.x2, b.y2, b.life);
+  });
+
+  // ── 회생 에너지 진행 호 ──
+  drawRegenArc(ctx, carX + carW*0.5, carY - carH*0.3, carW*0.6, calc, brakingIntensity);
+
+  // ── 속도 게이지 (좌측 상단) ──
+  drawSpeedGauge(ctx, 36, H*0.12, v_ms, anim.v0);
+
+  // ── 배터리 시각화 (우측) ──
+  drawBattery(ctx, W - 60, H*0.08, 36, 100, anim.soc, calc.E);
+
+  // ── 상태 텍스트 ──
+  drawStatusText(ctx, W, H, calc, v_ms);
 }
 
-function deepMerge(target, source) {
-  const out = Object.assign({}, target);
-  for (const k in source) {
-    if (source[k] && typeof source[k] === 'object' && !Array.isArray(source[k])) {
-      out[k] = deepMerge(target[k] || {}, source[k]);
+/* ────────────────────────────────
+   차량 그리기
+──────────────────────────────── */
+function drawCar(ctx, x, y, w, h, calc, intensity) {
+  const brakeLit = intensity > 0.05;
+
+  // 차량 그림자
+  ctx.save();
+  ctx.fillStyle = 'rgba(0,0,0,0.35)';
+  ctx.beginPath();
+  ctx.ellipse(x + w*0.5, y + h*1.08, w*0.45, h*0.12, 0, 0, Math.PI*2);
+  ctx.fill();
+  ctx.restore();
+
+  // 차체 하단
+  ctx.save();
+  const bodyGrad = ctx.createLinearGradient(x, y+h*0.3, x, y+h);
+  bodyGrad.addColorStop(0, '#2a3050');
+  bodyGrad.addColorStop(0.5, '#1e2240');
+  bodyGrad.addColorStop(1, '#141830');
+  ctx.fillStyle = bodyGrad;
+  ctx.beginPath();
+  roundRect(ctx, x, y+h*0.3, w, h*0.7, 6);
+  ctx.fill();
+  ctx.restore();
+
+  // 차체 상단 (캐빈)
+  ctx.save();
+  const roofGrad = ctx.createLinearGradient(x+w*0.15, y, x+w*0.15, y+h*0.4);
+  roofGrad.addColorStop(0, '#334070');
+  roofGrad.addColorStop(1, '#243060');
+  ctx.fillStyle = roofGrad;
+  ctx.beginPath();
+  roundRect(ctx, x+w*0.18, y, w*0.64, h*0.42, 8);
+  ctx.fill();
+  ctx.restore();
+
+  // 창문
+  ctx.save();
+  const winGrad = ctx.createLinearGradient(x+w*0.2, y+h*0.04, x+w*0.2, y+h*0.38);
+  winGrad.addColorStop(0, 'rgba(120,180,255,0.55)');
+  winGrad.addColorStop(1, 'rgba(60,100,200,0.3)');
+  ctx.fillStyle = winGrad;
+  // 앞창
+  ctx.beginPath();
+  roundRect(ctx, x+w*0.52, y+h*0.04, w*0.26, h*0.33, 4);
+  ctx.fill();
+  // 옆창
+  ctx.beginPath();
+  roundRect(ctx, x+w*0.22, y+h*0.05, w*0.26, h*0.30, 4);
+  ctx.fill();
+  ctx.restore();
+
+  // 차체 하이라이트 라인
+  ctx.save();
+  ctx.strokeStyle = 'rgba(100,140,255,0.3)';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.moveTo(x+w*0.05, y+h*0.45);
+  ctx.lineTo(x+w*0.95, y+h*0.45);
+  ctx.stroke();
+  ctx.restore();
+
+  // 전조등 (앞)
+  ctx.save();
+  ctx.fillStyle = 'rgba(200,230,255,0.9)';
+  ctx.shadowColor = '#aaddff';
+  ctx.shadowBlur = 14;
+  ctx.beginPath();
+  ctx.ellipse(x+w*0.92, y+h*0.42, w*0.04, h*0.07, 0, 0, Math.PI*2);
+  ctx.fill();
+  ctx.restore();
+
+  // 후미등 (뒤) — 회생제동 시 밝게
+  ctx.save();
+  ctx.fillStyle = brakeLit ? '#ff3030' : 'rgba(150,0,0,0.6)';
+  ctx.shadowColor = brakeLit ? '#ff0000' : 'transparent';
+  ctx.shadowBlur = brakeLit ? 18 : 0;
+  ctx.beginPath();
+  ctx.ellipse(x+w*0.07, y+h*0.42, w*0.035, h*0.065, 0, 0, Math.PI*2);
+  ctx.fill();
+  // 후미등 내부 하이라이트
+  if (brakeLit) {
+    ctx.fillStyle = 'rgba(255,150,150,0.7)';
+    ctx.beginPath();
+    ctx.ellipse(x+w*0.07, y+h*0.41, w*0.015, h*0.025, 0, 0, Math.PI*2);
+    ctx.fill();
+  }
+  ctx.restore();
+
+  // 바퀴 앞
+  drawWheel(ctx, x+w*0.75, y+h*0.95, h*0.22, anim.wheelAngle);
+  // 바퀴 뒤
+  drawWheel(ctx, x+w*0.25, y+h*0.95, h*0.22, anim.wheelAngle);
+
+  // EV 뱃지
+  ctx.save();
+  ctx.fillStyle = 'rgba(0,230,118,0.15)';
+  ctx.strokeStyle = 'rgba(0,230,118,0.5)';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  roundRect(ctx, x+w*0.38, y+h*0.55, w*0.24, h*0.2, 4);
+  ctx.fill(); ctx.stroke();
+  ctx.fillStyle = '#00e676';
+  ctx.font = `bold ${h*0.13}px monospace`;
+  ctx.textAlign = 'center';
+  ctx.fillText('EV', x+w*0.5, y+h*0.69);
+  ctx.restore();
+}
+
+function drawWheel(ctx, cx, cy, r, angle) {
+  // 타이어
+  ctx.save();
+  ctx.fillStyle = '#111';
+  ctx.strokeStyle = '#2a2a3a';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.arc(cx, cy, r, 0, Math.PI*2);
+  ctx.fill(); ctx.stroke();
+
+  // 림
+  ctx.translate(cx, cy);
+  ctx.rotate(angle);
+  ctx.strokeStyle = '#445588';
+  ctx.lineWidth = 1.5;
+  for (let i=0; i<5; i++) {
+    const a = (i/5)*Math.PI*2;
+    ctx.beginPath();
+    ctx.moveTo(0,0);
+    ctx.lineTo(Math.cos(a)*(r-3), Math.sin(a)*(r-3));
+    ctx.stroke();
+  }
+  // 허브
+  ctx.fillStyle = '#334466';
+  ctx.beginPath();
+  ctx.arc(0,0,r*0.28,0,Math.PI*2);
+  ctx.fill();
+  ctx.fillStyle = '#556699';
+  ctx.beginPath();
+  ctx.arc(0,0,r*0.12,0,Math.PI*2);
+  ctx.fill();
+  ctx.restore();
+}
+
+/* ────────────────────────────────
+   배경 (빌딩/산)
+──────────────────────────────── */
+function drawBackground(ctx, W, roadY) {
+  // 산 실루엣
+  ctx.save();
+  ctx.fillStyle = '#0d0d1a';
+  ctx.beginPath();
+  ctx.moveTo(0, roadY);
+  const mts = [[0.05,0.75],[0.15,0.52],[0.28,0.68],[0.4,0.48],[0.55,0.65],[0.68,0.44],[0.8,0.62],[0.92,0.50],[1.0,0.68]];
+  mts.forEach(([fx,fy]) => ctx.lineTo(W*fx, roadY*fy));
+  ctx.lineTo(W, roadY);
+  ctx.closePath();
+  ctx.fill();
+  ctx.restore();
+
+  // 빌딩 실루엣
+  ctx.save();
+  ctx.fillStyle = '#0f0f1e';
+  const buildings = [
+    [0.02,0.3,0.06,0.5],[0.09,0.22,0.05,0.5],[0.15,0.35,0.04,0.5],
+    [0.62,0.28,0.06,0.5],[0.70,0.18,0.05,0.5],[0.77,0.32,0.07,0.5],
+    [0.86,0.25,0.05,0.5],[0.92,0.38,0.06,0.5],
+  ];
+  buildings.forEach(([fx,fy,fw,fh]) => {
+    const bx=W*fx, by=roadY*fy, bw=W*fw, bh=roadY*(fh-fy);
+    ctx.fillRect(bx, by, bw, bh);
+    // 창문
+    ctx.fillStyle = 'rgba(255,220,100,0.12)';
+    for (let wi=0; wi<3; wi++) for (let hi=0; hi<4; hi++) {
+      if (Math.random()>0.4) {
+        ctx.fillRect(bx+bw*0.15+wi*(bw*0.28), by+bh*0.1+hi*(bh*0.2), bw*0.18, bh*0.12);
+      }
+    }
+    ctx.fillStyle = '#0f0f1e';
+  });
+  ctx.restore();
+}
+
+/* ────────────────────────────────
+   회생 에너지 호 표시
+──────────────────────────────── */
+function drawRegenArc(ctx, cx, cy, r, calc, intensity) {
+  if (intensity <= 0) return;
+  const pct = Math.min(1, calc.eta / 100);
+
+  ctx.save();
+  // 배경 호
+  ctx.beginPath();
+  ctx.arc(cx, cy, r, Math.PI, 2*Math.PI);
+  ctx.strokeStyle = 'rgba(255,255,255,0.05)';
+  ctx.lineWidth = 6;
+  ctx.lineCap = 'round';
+  ctx.stroke();
+
+  // 에너지 호
+  ctx.beginPath();
+  ctx.arc(cx, cy, r, Math.PI, Math.PI + pct * Math.PI * intensity);
+  ctx.strokeStyle = '#00e676';
+  ctx.lineWidth = 6;
+  ctx.shadowColor = '#00e676';
+  ctx.shadowBlur = 12;
+  ctx.stroke();
+
+  // 라벨
+  ctx.shadowBlur = 0;
+  ctx.fillStyle = 'rgba(0,230,118,0.85)';
+  ctx.font = 'bold 11px monospace';
+  ctx.textAlign = 'center';
+  ctx.fillText(`η ${calc.eta.toFixed(0)}%`, cx, cy + 16);
+  ctx.restore();
+}
+
+/* ────────────────────────────────
+   속도 게이지
+──────────────────────────────── */
+function drawSpeedGauge(ctx, cx, cy, v_ms, v0_ms) {
+  const R = 36;
+  const startA = Math.PI * 0.8;
+  const endA   = Math.PI * 2.2;
+  const pct    = v0_ms > 0 ? v_ms / v0_ms : 0;
+
+  // 배경 원
+  ctx.save();
+  ctx.fillStyle = 'rgba(15,15,30,0.75)';
+  ctx.strokeStyle = 'rgba(255,255,255,0.06)';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.arc(cx, cy, R+8, 0, Math.PI*2);
+  ctx.fill(); ctx.stroke();
+
+  // 배경 호
+  ctx.beginPath();
+  ctx.arc(cx, cy, R, startA, endA);
+  ctx.strokeStyle = 'rgba(255,255,255,0.07)';
+  ctx.lineWidth = 5;
+  ctx.lineCap = 'round';
+  ctx.stroke();
+
+  // 속도 호
+  const curA = startA + pct * (endA - startA);
+  ctx.beginPath();
+  ctx.arc(cx, cy, R, startA, curA);
+  const g = ctx.createLinearGradient(cx-R, cy, cx+R, cy);
+  g.addColorStop(0, '#448aff');
+  g.addColorStop(1, '#00e676');
+  ctx.strokeStyle = g;
+  ctx.lineWidth = 5;
+  ctx.shadowColor = '#448aff';
+  ctx.shadowBlur = 10;
+  ctx.stroke();
+
+  // 속도 텍스트
+  ctx.shadowBlur = 0;
+  ctx.fillStyle = '#e0e0f0';
+  ctx.font = 'bold 15px monospace';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(Math.round(v_ms * 3.6), cx, cy-2);
+  ctx.font = '9px sans-serif';
+  ctx.fillStyle = 'rgba(180,180,220,0.6)';
+  ctx.fillText('km/h', cx, cy+13);
+  ctx.restore();
+}
+
+/* ────────────────────────────────
+   배터리
+──────────────────────────────── */
+function drawBattery(ctx, x, y, w, h, soc, E_wh) {
+  const bx = x - w/2;
+
+  // 배경 박스
+  ctx.save();
+  ctx.fillStyle = 'rgba(15,15,30,0.75)';
+  ctx.strokeStyle = 'rgba(255,255,255,0.06)';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  roundRect(ctx, bx-10, y-10, w+20, h+36, 8);
+  ctx.fill(); ctx.stroke();
+
+  // 배터리 케이스
+  ctx.strokeStyle = 'rgba(255,255,255,0.12)';
+  ctx.lineWidth = 1.5;
+  ctx.fillStyle = '#0e0e1a';
+  ctx.beginPath();
+  roundRect(ctx, bx, y, w, h, 4);
+  ctx.fill(); ctx.stroke();
+
+  // 배터리 캡
+  ctx.fillStyle = 'rgba(255,255,255,0.1)';
+  ctx.beginPath();
+  roundRect(ctx, bx + w*0.2, y-5, w*0.6, 6, 2);
+  ctx.fill();
+
+  // 충전 레벨
+  const fillH = h * Math.min(1, Math.max(0, soc));
+  const fillY = y + h - fillH;
+  const fillGrad = ctx.createLinearGradient(0, fillY, 0, y+h);
+  if (soc > 0.6)      { fillGrad.addColorStop(0,'#00e676'); fillGrad.addColorStop(1,'#00c853'); }
+  else if (soc > 0.3) { fillGrad.addColorStop(0,'#ffd740'); fillGrad.addColorStop(1,'#ff9800'); }
+  else                { fillGrad.addColorStop(0,'#ff5252'); fillGrad.addColorStop(1,'#d32f2f'); }
+
+  ctx.fillStyle = fillGrad;
+  ctx.shadowColor = soc > 0.6 ? '#00e676' : '#ffd740';
+  ctx.shadowBlur = 8;
+  ctx.beginPath();
+  roundRect(ctx, bx+2, fillY, w-4, fillH, 3);
+  ctx.fill();
+
+  // % 텍스트
+  ctx.shadowBlur = 0;
+  ctx.fillStyle = '#e0e0f0';
+  ctx.font = 'bold 11px monospace';
+  ctx.textAlign = 'center';
+  ctx.fillText((soc*100).toFixed(0)+'%', bx+w/2, y+h+18);
+
+  // 라벨
+  ctx.font = '9px sans-serif';
+  ctx.fillStyle = 'rgba(180,180,220,0.5)';
+  ctx.fillText('SOC', bx+w/2, y+h+29);
+  ctx.restore();
+}
+
+/* ────────────────────────────────
+   상태 텍스트
+──────────────────────────────── */
+function drawStatusText(ctx, W, H, calc, v_ms) {
+  const roadY = H * 0.60;
+
+  ctx.save();
+  ctx.textAlign = 'center';
+
+  // V_emf 현재값 (차량 위)
+  const carCX = W*0.49;
+  const carY  = roadY - H*0.04*0.6;
+
+  if (anim.running && v_ms > 0.5) {
+    const emf = vmax_emf(v_ms);
+    ctx.fillStyle = 'rgba(68,138,255,0.9)';
+    ctx.font = 'bold 12px monospace';
+    ctx.fillText(`V_emf: ${emf.toFixed(0)} V`, carCX, roadY - H*0.38);
+
+    // 화살표 표시 (에너지 흐름 방향)
+    ctx.strokeStyle = 'rgba(0,230,118,0.6)';
+    ctx.lineWidth = 2;
+    ctx.setLineDash([4,4]);
+    ctx.beginPath();
+    ctx.moveTo(carCX + W*0.14, roadY - H*0.22);
+    ctx.lineTo(carCX + W*0.26, roadY - H*0.22);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    // 화살촉
+    ctx.fillStyle = 'rgba(0,230,118,0.8)';
+    ctx.beginPath();
+    ctx.moveTo(carCX + W*0.26, roadY - H*0.22);
+    ctx.lineTo(carCX + W*0.24, roadY - H*0.22 - 5);
+    ctx.lineTo(carCX + W*0.24, roadY - H*0.22 + 5);
+    ctx.fill();
+
+    ctx.fillStyle = 'rgba(0,230,118,0.7)';
+    ctx.font = '10px sans-serif';
+    ctx.textAlign = 'left';
+    ctx.fillText('⚡ 회생 충전', carCX + W*0.15, roadY - H*0.25);
+    ctx.textAlign = 'center';
+  }
+
+  // 정지 완료 텍스트
+  if (anim.running && v_ms < 0.3) {
+    ctx.fillStyle = 'rgba(0,230,118,0.9)';
+    ctx.font = 'bold 14px sans-serif';
+    ctx.fillText('✅ 제동 완료 — ' + calc.E.toFixed(2) + ' Wh 회수', W/2, roadY - H*0.04);
+  }
+
+  ctx.restore();
+}
+
+/* ────────────────────────────────
+   번개 이펙트
+──────────────────────────────── */
+function drawBolt(ctx, x1, y1, x2, y2, life) {
+  ctx.save();
+  ctx.globalAlpha = life * 0.8;
+  ctx.strokeStyle = '#ffd740';
+  ctx.shadowColor = '#ffd740';
+  ctx.shadowBlur = 12;
+  ctx.lineWidth = 1.5;
+
+  const segs = 6;
+  const pts = [[x1,y1]];
+  for (let i=1; i<segs; i++) {
+    const t = i/segs;
+    const mx = x1 + (x2-x1)*t + (Math.random()-0.5)*20;
+    const my = y1 + (y2-y1)*t + (Math.random()-0.5)*15;
+    pts.push([mx,my]);
+  }
+  pts.push([x2,y2]);
+
+  ctx.beginPath();
+  ctx.moveTo(pts[0][0], pts[0][1]);
+  pts.slice(1).forEach(p => ctx.lineTo(p[0],p[1]));
+  ctx.stroke();
+  ctx.restore();
+}
+
+/* ────────────────────────────────
+   roundRect helper
+──────────────────────────────── */
+function roundRect(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x+r, y);
+  ctx.lineTo(x+w-r, y);
+  ctx.quadraticCurveTo(x+w, y, x+w, y+r);
+  ctx.lineTo(x+w, y+h-r);
+  ctx.quadraticCurveTo(x+w, y+h, x+w-r, y+h);
+  ctx.lineTo(x+r, y+h);
+  ctx.quadraticCurveTo(x, y+h, x, y+h-r);
+  ctx.lineTo(x, y+r);
+  ctx.quadraticCurveTo(x, y, x+r, y);
+  ctx.closePath();
+}
+
+/* ════════════════════════════════
+   ANIMATION LOOP
+════════════════════════════════ */
+function startAnim() {
+  if (anim.rafId) cancelAnimationFrame(anim.rafId);
+
+  anim.t       = 0;
+  anim.v0      = S.v0 / 3.6;
+  anim.v       = anim.v0;
+  anim.E_acc   = 0;
+  anim.soc     = 0.60;
+  anim.running = true;
+  anim.particles = [];
+  anim.bolts     = [];
+  anim.wheelAngle= 0;
+
+  const a_dec  = 0.12 * 9.81; // 고정 감속도 m/s²
+  const dt_sim = 1/60;
+
+  function loop() {
+    if (!anim.running) return;
+
+    // 물리 스텝
+    if (anim.v > 0.1) {
+      anim.v = Math.max(0, anim.v - a_dec * dt_sim);
+      anim.t += dt_sim;
+
+      // 바퀴 회전
+      anim.wheelAngle += anim.v * dt_sim / 0.316;
+
+      // 에너지 적산
+      const emf  = vmax_emf(anim.v);
+      const I    = i_max(emf, S.res);
+      const P_regen = Math.max(0, emf * I * 0.9 - I*I*S.res - 200)
+                      * PHY.eta_inv * PHY.eta_bat;
+      const dE = P_regen * dt_sim / 3600;
+      anim.E_acc += dE;
+      anim.soc = Math.min(0.99, 0.60 + anim.E_acc / 75000);
     } else {
-      out[k] = source[k];
+      anim.v = 0;
     }
+
+    const calc = calcAll();
+    drawScene(calc);
+    updateUI(calc);
+
+    anim.rafId = requestAnimationFrame(loop);
   }
-  return out;
+  anim.rafId = requestAnimationFrame(loop);
 }
 
-function updateChart(id, labels, datasetsData) {
-  const ch = CHARTS[id];
-  if (!ch) return;
-  ch.data.labels = labels;
-  datasetsData.forEach((d, i) => {
-    if (ch.data.datasets[i]) {
-      ch.data.datasets[i].data = d;
-    }
-  });
-  ch.update('none');
+// 정적 렌더 (슬라이더만 조작 시)
+function staticRender() {
+  if (anim.running) return; // 시뮬 중이면 건드리지 않음
+  anim.v = S.v0 / 3.6;
+  const calc = calcAll();
+  drawScene(calc);
+  updateUI(calc);
 }
 
-/* ════════════════════════════════════════════════════════
-   TAB 1 — 초기화 & 업데이트
-════════════════════════════════════════════════════════ */
-function initTab1() {
-  // EMF vs time
-  makeChart('chart-emf-time', 'line', {
-    labels: [],
-    datasets: [{
-      label: '유도 기전력 V_emf (V)',
-      data: [],
-      borderColor: '#4a9eff',
-      backgroundColor: 'rgba(74,158,255,0.08)',
-      borderWidth: 2.5,
-      pointRadius: 0,
-      fill: true
-    }]
-  }, {
-    plugins: { legend: { labels: { color:'#7878a0' } } },
-    scales: {
-      x: { title:{ display:true, text:'제동 시간 (s)', color:'#7878a0', font:{size:10} }, ticks:{color:'#7878a0',font:{size:9}}, grid:{color:'rgba(42,42,69,0.8)'} },
-      y: { title:{ display:true, text:'V_emf (V)', color:'#7878a0', font:{size:10} }, ticks:{color:'#7878a0',font:{size:9}}, grid:{color:'rgba(42,42,69,0.8)'}, min:0 }
-    }
-  });
-
-  // Speed vs time
-  makeChart('chart-speed-time', 'line', {
-    labels: [],
-    datasets: [{
-      label: '속도 (km/h)',
-      data: [],
-      borderColor: '#4a9eff',
-      backgroundColor: 'rgba(74,158,255,0.06)',
-      borderWidth: 2,
-      pointRadius: 0,
-      fill: true
-    }]
-  }, {
-    scales: {
-      x: { title:{display:true,text:'시간 (s)',color:'#7878a0',font:{size:10}}, ticks:{color:'#7878a0',font:{size:9}}, grid:{color:'rgba(42,42,69,0.8)'} },
-      y: { title:{display:true,text:'속도 (km/h)',color:'#7878a0',font:{size:10}}, ticks:{color:'#7878a0',font:{size:9}}, grid:{color:'rgba(42,42,69,0.8)'}, min:0 }
-    }
-  });
-
-  // Current vs time
-  makeChart('chart-curr-time', 'line', {
-    labels: [],
-    datasets: [{
-      label: '유도 전류 I (A)',
-      data: [],
-      borderColor: '#ff5252',
-      backgroundColor: 'rgba(255,82,82,0.06)',
-      borderWidth: 2,
-      pointRadius: 0,
-      fill: true
-    }]
-  }, {
-    scales: {
-      x: { title:{display:true,text:'시간 (s)',color:'#7878a0',font:{size:10}}, ticks:{color:'#7878a0',font:{size:9}}, grid:{color:'rgba(42,42,69,0.8)'} },
-      y: { title:{display:true,text:'전류 I (A)',color:'#7878a0',font:{size:10}}, ticks:{color:'#7878a0',font:{size:9}}, grid:{color:'rgba(42,42,69,0.8)'}, min:0 }
-    }
-  });
-
-  // Energy vs time
-  makeChart('chart-energy-time', 'line', {
-    labels: [],
-    datasets: [{
-      label: '누적 회생 에너지 (Wh)',
-      data: [],
-      borderColor: '#00e87a',
-      backgroundColor: 'rgba(0,232,122,0.08)',
-      borderWidth: 2.5,
-      pointRadius: 0,
-      fill: true
-    }]
-  }, {
-    scales: {
-      x: { title:{display:true,text:'시간 (s)',color:'#7878a0',font:{size:10}}, ticks:{color:'#7878a0',font:{size:9}}, grid:{color:'rgba(42,42,69,0.8)'} },
-      y: { title:{display:true,text:'에너지 (Wh)',color:'#7878a0',font:{size:10}}, ticks:{color:'#7878a0',font:{size:9}}, grid:{color:'rgba(42,42,69,0.8)'}, min:0 }
-    }
-  });
-}
-
-function updateTab1() {
-  const v0_ms = S.v0 / 3.6;
-  const a_dec = 0.12 * 9.81; // 고정 감속도
-  const ts = buildTimeSeries(v0_ms, a_dec, S.mass, S.res);
-
-  updateChart('chart-emf-time', ts.times, [ts.emfs]);
-  updateChart('chart-speed-time', ts.times, [ts.speeds]);
-  updateChart('chart-curr-time', ts.times, [ts.currents]);
-  updateChart('chart-energy-time', ts.times, [ts.energies]);
-
-  const c = calcAll();
-  document.getElementById('t1-vmax').textContent = c.Vmax.toFixed(1);
-  document.getElementById('t1-e').textContent = c.E_stored.toFixed(2);
-  document.getElementById('t1-eta').textContent = c.eta_eff.toFixed(1);
-}
-
-/* ════════════════════════════════════════════════════════
-   TAB 2 — 에너지 흐름
-════════════════════════════════════════════════════════ */
-function initTab2() {
-  makeChart('chart-donut', 'doughnut', {
-    labels: ['배터리 저장', '모터 손실', '인버터 손실', '배터리 손실', '협조제동 손실'],
-    datasets: [{
-      data: [],
-      backgroundColor: ['#00e87a','#ff5252','#ffd740','#b388ff','#ff8a65'],
-      borderColor: '#13131f',
-      borderWidth: 3
-    }]
-  }, {
-    cutout: '60%',
-    plugins: {
-      legend: {
-        position: 'bottom',
-        labels: { color:'#7878a0', font:{size:9}, boxWidth:10, padding:8 }
-      }
-    },
-    scales: { x:{display:false}, y:{display:false} }
-  });
-
-  makeChart('chart-eff-steps', 'bar', {
-    labels: ['KE', '모터 후', '인버터 후', '배터리 후', '협조 후'],
-    datasets: [{
-      label: '에너지 (Wh)',
-      data: [],
-      backgroundColor: ['#4a9eff','#6ab4ff','#00e87a','#00c466','#009944'],
-      borderRadius: 6,
-      borderSkipped: false
-    }]
-  }, {
-    plugins: { legend:{display:false} },
-    scales: {
-      x: { ticks:{color:'#7878a0',font:{size:9}}, grid:{color:'rgba(42,42,69,0.8)'} },
-      y: { ticks:{color:'#7878a0',font:{size:9}}, grid:{color:'rgba(42,42,69,0.8)'},
-           title:{display:true,text:'Wh',color:'#7878a0',font:{size:10}} }
-    }
-  });
-}
-
-function updateTab2() {
-  const c = calcAll();
-  const KE = c.KE;
-  const motor_loss  = KE * (1 - P.eta_m);
-  const after_m     = KE * P.eta_m;
-  const inv_loss    = after_m * (1 - P.eta_inv);
-  const after_inv   = after_m * P.eta_inv;
-  const bat_loss    = after_inv * (1 - P.eta_bat);
-  const after_bat   = after_inv * P.eta_bat;
-  const blend_loss  = after_bat * (1 - P.eta_br);
-  const stored      = c.E_stored;
-
+/* ════════════════════════════════
+   UI UPDATE
+════════════════════════════════ */
+function updateUI(calc) {
   // KPI
-  document.getElementById('t2-ke').textContent   = KE.toFixed(2);
-  document.getElementById('t2-e').textContent    = stored.toFixed(2);
-  document.getElementById('t2-loss').textContent = (KE - stored).toFixed(2);
+  document.getElementById('kpi-e').textContent    = calc.E.toFixed(2);
+  document.getElementById('kpi-vmax').textContent = calc.Vmax.toFixed(1);
+  document.getElementById('kpi-eta').textContent  = calc.eta.toFixed(1);
+  document.getElementById('kpi-ke').textContent   = calc.KE.toFixed(2);
+  document.getElementById('kpi-imax').textContent = calc.Imax.toFixed(1);
+  document.getElementById('kpi-loss').textContent = calc.loss.toFixed(2);
 
-  // 에너지 흐름 바
-  const flowData = [
-    { label: '총 운동에너지 KE', val: KE,         pct: 100,               color:'#4a9eff' },
-    { label: '모터 변환 후 (η=95%)', val: after_m,pct: P.eta_m*100,       color:'#6ab4ff' },
-    { label: '인버터 후 (η=97%)',val: after_inv,  pct: P.eta_m*P.eta_inv*100, color:'#00d4b0' },
-    { label: '배터리 충전 후 (η=95%)', val: after_bat, pct: P.eta_m*P.eta_inv*P.eta_bat*100, color:'#00e87a' },
-    { label: '최종 저장 (η=74.3%)', val: stored,  pct: P.eta_total*100,   color:'#00ff88' },
-  ];
-  const fb = document.getElementById('flow-bars');
-  fb.innerHTML = '';
-  flowData.forEach(f => {
-    const row = document.createElement('div');
-    row.className = 'flow-row';
-    row.innerHTML = `
-      <div class="flow-label">${f.label}</div>
-      <div class="flow-bar-bg">
-        <div class="flow-bar-fill" style="width:${f.pct.toFixed(1)}%;background:${f.color}">
-          ${f.pct.toFixed(0)}%
-        </div>
-      </div>
-      <div class="flow-val" style="color:${f.color}">${f.val.toFixed(2)} Wh</div>
-    `;
-    fb.appendChild(row);
-  });
-
-  // 도넛
-  const ch = CHARTS['chart-donut'];
-  if (ch) {
-    ch.data.datasets[0].data = [
-      stored, motor_loss, inv_loss, bat_loss, blend_loss
-    ];
-    ch.update('none');
+  // 에너지 바
+  const KE = calc.KE;
+  if (KE > 0) {
+    const after_m   = KE * PHY.eta_m;
+    const after_inv = after_m * PHY.eta_inv;
+    const after_bat = after_inv * PHY.eta_bat * PHY.eta_br;
+    setBar('bar-ke',    100,                  'num-ke',    KE,       'var(--blue)');
+    setBar('bar-motor', (after_m/KE)*100,     'num-motor', after_m,  '#00c9a7');
+    setBar('bar-inv',   (after_inv/KE)*100,   'num-inv',   after_inv,'#00b09b');
+    setBar('bar-bat',   (after_bat/KE)*100,   'num-bat',   after_bat,'var(--green)');
   }
 
-  // 단계별 효율 막대
-  const ch2 = CHARTS['chart-eff-steps'];
-  if (ch2) {
-    ch2.data.datasets[0].data = [
-      +KE.toFixed(3), +after_m.toFixed(3), +after_inv.toFixed(3),
-      +after_bat.toFixed(3), +stored.toFixed(3)
-    ];
-    ch2.update('none');
-  }
-}
-
-/* ════════════════════════════════════════════════════════
-   TAB 3 — 속도별 비교
-════════════════════════════════════════════════════════ */
-const V0_RANGE = [10,20,30,40,50,60,70,80,90,100,110,120];
-
-function calcForV0(v0_kmh) {
-  const v_ms = v0_kmh / 3.6;
-  const KE   = kinetic_wh(S.mass, v_ms);
-  const Vmax = vmax_emf(v_ms);
-  const stored = KE * P.eta_total * Math.min(1, Vmax / S.vset * 0.95);
-  const eta  = KE > 0 ? (stored / KE) * 100 : 0;
-  return { KE, Vmax, stored, eta };
-}
-
-function initTab3() {
-  makeChart('chart-v0-dep', 'line', {
-    labels: V0_RANGE,
-    datasets: [
-      {
-        label: 'V_max (V)',
-        data: [],
-        borderColor: '#4a9eff',
-        backgroundColor: 'rgba(74,158,255,0.05)',
-        borderWidth: 2,
-        pointRadius: 3,
-        fill: false,
-        yAxisID: 'y'
-      },
-      {
-        label: 'E_stored (Wh)',
-        data: [],
-        borderColor: '#00e87a',
-        backgroundColor: 'rgba(0,232,122,0.07)',
-        borderWidth: 2,
-        pointRadius: 3,
-        fill: true,
-        yAxisID: 'y1'
-      }
-    ]
-  }, {
-    scales: {
-      x: {
-        title:{display:true,text:'초기 속도 V₀ (km/h)',color:'#7878a0',font:{size:10}},
-        ticks:{color:'#7878a0',font:{size:9}}, grid:{color:'rgba(42,42,69,0.8)'}
-      },
-      y: {
-        type: 'linear', position: 'left',
-        title:{display:true,text:'V_max (V)',color:'#4a9eff',font:{size:10}},
-        ticks:{color:'#4a9eff',font:{size:9}}, grid:{color:'rgba(42,42,69,0.4)'}
-      },
-      y1: {
-        type: 'linear', position: 'right',
-        title:{display:true,text:'E_stored (Wh)',color:'#00e87a',font:{size:10}},
-        ticks:{color:'#00e87a',font:{size:9}}, grid:{display:false}
-      }
-    }
-  });
-
-  makeChart('chart-v0-vmax','line',{
-    labels: V0_RANGE,
-    datasets:[{
-      label:'V_max (V)',data:[],
-      borderColor:'#4a9eff',backgroundColor:'rgba(74,158,255,0.08)',
-      borderWidth:2,pointRadius:3,fill:true
-    }]
-  },{
-    scales:{
-      x:{title:{display:true,text:'V₀ (km/h)',color:'#7878a0',font:{size:10}},ticks:{color:'#7878a0',font:{size:9}},grid:{color:'rgba(42,42,69,0.8)'}},
-      y:{title:{display:true,text:'V (V)',color:'#7878a0',font:{size:10}},ticks:{color:'#7878a0',font:{size:9}},grid:{color:'rgba(42,42,69,0.8)'},min:0}
-    }
-  });
-
-  makeChart('chart-v0-e','line',{
-    labels: V0_RANGE,
-    datasets:[{
-      label:'E_stored (Wh)',data:[],
-      borderColor:'#ffd740',backgroundColor:'rgba(255,215,64,0.07)',
-      borderWidth:2,pointRadius:3,fill:true
-    }]
-  },{
-    scales:{
-      x:{title:{display:true,text:'V₀ (km/h)',color:'#7878a0',font:{size:10}},ticks:{color:'#7878a0',font:{size:9}},grid:{color:'rgba(42,42,69,0.8)'}},
-      y:{title:{display:true,text:'Wh',color:'#7878a0',font:{size:10}},ticks:{color:'#7878a0',font:{size:9}},grid:{color:'rgba(42,42,69,0.8)'},min:0}
-    }
-  });
-}
-
-function updateTab3() {
-  const vmaxArr=[], eArr=[], keArr=[], etaArr=[];
-
-  V0_RANGE.forEach(v => {
-    const d = calcForV0(v);
-    vmaxArr.push(+d.Vmax.toFixed(2));
-    eArr.push(+d.stored.toFixed(3));
-    keArr.push(+d.KE.toFixed(3));
-    etaArr.push(+d.eta.toFixed(1));
-  });
-
-  // 현재 V0 포인트 강조
-  const curIdx = V0_RANGE.indexOf(S.v0);
-  const bgVmax = V0_RANGE.map((_, i) => i===curIdx ? '#4a9eff' : 'rgba(74,158,255,0.3)');
-  const bgE    = V0_RANGE.map((_, i) => i===curIdx ? '#00e87a' : 'rgba(0,232,122,0.3)');
-
-  const ch = CHARTS['chart-v0-dep'];
-  if (ch) {
-    ch.data.labels = V0_RANGE;
-    ch.data.datasets[0].data = vmaxArr;
-    ch.data.datasets[1].data = eArr;
-    ch.data.datasets[0].pointBackgroundColor = bgVmax;
-    ch.data.datasets[0].pointRadius = V0_RANGE.map((_,i)=>i===curIdx?7:3);
-    ch.data.datasets[1].pointBackgroundColor = bgE;
-    ch.data.datasets[1].pointRadius = V0_RANGE.map((_,i)=>i===curIdx?7:3);
-    ch.update('none');
-  }
-
-  updateChart('chart-v0-vmax', V0_RANGE, [vmaxArr]);
-  updateChart('chart-v0-e', V0_RANGE, [eArr]);
-
-  // 현재 V0 강조 점
-  if (CHARTS['chart-v0-vmax']) {
-    CHARTS['chart-v0-vmax'].data.datasets[0].pointBackgroundColor = bgVmax;
-    CHARTS['chart-v0-vmax'].data.datasets[0].pointRadius = V0_RANGE.map((_,i)=>i===curIdx?7:3);
-    CHARTS['chart-v0-vmax'].update('none');
-  }
-  if (CHARTS['chart-v0-e']) {
-    CHARTS['chart-v0-e'].data.datasets[0].pointBackgroundColor = bgE;
-    CHARTS['chart-v0-e'].data.datasets[0].pointRadius = V0_RANGE.map((_,i)=>i===curIdx?7:3);
-    CHARTS['chart-v0-e'].update('none');
-  }
-
-  // 테이블
-  const tbody = document.getElementById('compare-tbody');
-  tbody.innerHTML = '';
-  V0_RANGE.forEach((v, i) => {
-    const isCur = v === S.v0;
-    const tr = document.createElement('tr');
-    if (isCur) tr.style.background = 'rgba(0,232,122,0.06)';
-    tr.innerHTML = `
-      <td class="num ${isCur?'green':''}">${isCur?'▶ ':''} ${v}</td>
-      <td class="num">${keArr[i]}</td>
-      <td class="num blue">${vmaxArr[i]}</td>
-      <td class="num ${isCur?'green':''}">${eArr[i]}</td>
-      <td class="num yellow">${etaArr[i]}</td>
-    `;
-    tbody.appendChild(tr);
-  });
-}
-
-/* ════════════════════════════════════════════════════════
-   TAB 4 — 종합 분석
-════════════════════════════════════════════════════════ */
-function initTab4() {
-  // R 변화 → 효율
-  makeChart('chart-r-effect','line',{
-    labels:[],
-    datasets:[
-      {
-        label:'회수 에너지 (Wh)',data:[],
-        borderColor:'#00e87a',backgroundColor:'rgba(0,232,122,0.06)',
-        borderWidth:2,pointRadius:3,fill:true,yAxisID:'y'
-      },
-      {
-        label:'손실 에너지 (Wh)',data:[],
-        borderColor:'#ff5252',backgroundColor:'rgba(255,82,82,0.06)',
-        borderWidth:2,pointRadius:3,fill:true,yAxisID:'y'
-      }
-    ]
-  },{
-    scales:{
-      x:{title:{display:true,text:'저항 R (Ω)',color:'#7878a0',font:{size:10}},ticks:{color:'#7878a0',font:{size:9}},grid:{color:'rgba(42,42,69,0.8)'}},
-      y:{title:{display:true,text:'에너지 (Wh)',color:'#7878a0',font:{size:10}},ticks:{color:'#7878a0',font:{size:9}},grid:{color:'rgba(42,42,69,0.8)'},min:0}
-    }
-  });
-
-  // Vset → 임계 속도
-  makeChart('chart-vset-thresh','line',{
-    labels:[],
-    datasets:[{
-      label:'충전 임계 속도 (km/h)',data:[],
-      borderColor:'#ffd740',backgroundColor:'rgba(255,215,64,0.07)',
-      borderWidth:2,pointRadius:3,fill:true
-    }]
-  },{
-    scales:{
-      x:{title:{display:true,text:'기준 전압 V_set (V)',color:'#7878a0',font:{size:10}},ticks:{color:'#7878a0',font:{size:9}},grid:{color:'rgba(42,42,69,0.8)'}},
-      y:{title:{display:true,text:'임계 속도 (km/h)',color:'#7878a0',font:{size:10}},ticks:{color:'#7878a0',font:{size:9}},grid:{color:'rgba(42,42,69,0.8)'},min:0}
-    }
-  });
-
-  // 레이더
-  makeChart('chart-summary-radar','radar',{
-    labels:['V₀ 영향','에너지 효율','기전력 크기','전류 크기','손실 최소화'],
-    datasets:[{
-      label:'현재 설정',
-      data:[],
-      borderColor:'#00e87a',
-      backgroundColor:'rgba(0,232,122,0.1)',
-      borderWidth:2,
-      pointBackgroundColor:'#00e87a',
-    }]
-  },{
-    scales:{
-      r:{
-        ticks:{color:'#7878a0',font:{size:8},backdropColor:'transparent'},
-        grid:{color:'rgba(42,42,69,0.8)'},
-        pointLabels:{color:'#7878a0',font:{size:9}},
-        min:0,max:100
-      }
-    }
-  });
-}
-
-function updateTab4() {
-  const v0_ms = S.v0 / 3.6;
-
-  // R sweep
-  const rVals=[], eVals=[], lossVals=[];
-  for (let r = 0.05; r <= 0.50; r += 0.025) {
-    const oldR = S.res;
-    S.res = r;
-    const c = calcAll();
-    S.res = oldR;
-    rVals.push(r.toFixed(3));
-    eVals.push(+c.E_stored.toFixed(3));
-    lossVals.push(+(c.KE - c.E_stored).toFixed(3));
-  }
-  // 현재 R 포인트 강조
-  const rIdx = rVals.findIndex(r => Math.abs(parseFloat(r) - S.res) < 0.015);
-  const ch4 = CHARTS['chart-r-effect'];
-  if (ch4) {
-    ch4.data.labels = rVals;
-    ch4.data.datasets[0].data = eVals;
-    ch4.data.datasets[1].data = lossVals;
-    ch4.data.datasets[0].pointRadius = rVals.map((_,i)=>i===rIdx?7:3);
-    ch4.data.datasets[0].pointBackgroundColor = rVals.map((_,i)=>i===rIdx?'#00ff88':'#00e87a');
-    ch4.update('none');
-  }
-
-  // Vset sweep → 임계 속도
-  const vsetVals=[], threshVals=[];
-  for (let vset = 100; vset <= 500; vset += 20) {
-    // V_emf = K_e * (v*Gr/r) >= vset 를 만족하는 최소 v
-    const v_thresh_ms = (vset / P.K_e) * (P.r / P.G_r);
-    const v_thresh_kmh = v_thresh_ms * 3.6;
-    vsetVals.push(vset);
-    threshVals.push(+v_thresh_kmh.toFixed(1));
-  }
-  updateChart('chart-vset-thresh', vsetVals, [threshVals]);
-
-  // 현재 V_set 임계 속도
-  const thresh = (S.vset / P.K_e) * (P.r / P.G_r) * 3.6;
-  const statusEl = document.getElementById('vset-status');
+  // 충전 가능 여부
+  const thresh = (S.vset / PHY.K_e) * (PHY.r / PHY.G_r) * 3.6;
   const canCharge = S.v0 >= thresh;
-  statusEl.innerHTML = canCharge
-    ? `<span style="color:var(--green)">✅ V₀=${S.v0}km/h &gt; 임계속도 ${thresh.toFixed(1)}km/h → 충전 가능</span>`
-    : `<span style="color:var(--red)">❌ V₀=${S.v0}km/h &lt; 임계속도 ${thresh.toFixed(1)}km/h → 충전 불가 (V_set 낮추거나 V₀ 높여야 함)</span>`;
-
-  // 레이더
-  const c = calcAll();
-  const radarData = [
-    Math.min(100, (S.v0/120)*100),           // V0 영향
-    Math.min(100, c.eta_eff),                  // 효율
-    Math.min(100, (c.Vmax/500)*100),           // 기전력
-    Math.min(100, (c.I_max/200)*100),          // 전류
-    Math.min(100, 100 - (c.E_loss/Math.max(c.KE,0.001))*100) // 손실 최소화
-  ];
-  const chR = CHARTS['chart-summary-radar'];
-  if (chR) {
-    chR.data.datasets[0].data = radarData.map(v=>+v.toFixed(1));
-    chR.update('none');
+  const el = document.getElementById('charge-status');
+  if (canCharge) {
+    el.textContent = `✅ 충전 가능 (임계 ${thresh.toFixed(0)} km/h 이하)`;
+    el.style.background = 'rgba(0,230,118,0.1)';
+    el.style.color = 'var(--green)';
+    el.style.border = '1px solid rgba(0,230,118,0.3)';
+  } else {
+    el.textContent = `❌ 충전 불가 — V₀ < ${thresh.toFixed(0)} km/h 필요`;
+    el.style.background = 'rgba(255,82,82,0.1)';
+    el.style.color = 'var(--red)';
+    el.style.border = '1px solid rgba(255,82,82,0.3)';
   }
 }
 
-/* ════════════════════════════════════════════════════════
-   GLOBAL UPDATE — 모든 패널 동기화
-════════════════════════════════════════════════════════ */
-function updateAll() {
-  const c = calcAll();
-
-  // 사이드바 종속변인 표시
-  document.getElementById('kpi-e').textContent     = c.E_stored.toFixed(2) + ' Wh';
-  document.getElementById('kpi-vmax').textContent  = c.Vmax.toFixed(1) + ' V';
-  document.getElementById('kpi-eta').textContent   = c.eta_eff.toFixed(1) + ' %';
-  document.getElementById('kpi-ke').textContent    = c.KE.toFixed(2) + ' Wh';
-  document.getElementById('kpi-imax').textContent  = c.I_max.toFixed(1) + ' A';
-  document.getElementById('kpi-loss').textContent  = c.E_loss.toFixed(2) + ' Wh';
-
-  // 상태바 수식
-  document.getElementById('status-formula').textContent =
-    `V_max = K_e × ω_r = ${P.K_e} × (${S.v0}×${P.G_r}/${P.r}) = ${c.Vmax.toFixed(1)} V   |   E_stored = ${c.E_stored.toFixed(2)} Wh   |   η = ${c.eta_eff.toFixed(1)}%`;
-
-  updateTab1();
-  updateTab2();
-  updateTab3();
-  updateTab4();
+function setBar(barId, pct, numId, val, color) {
+  const bar = document.getElementById(barId);
+  const num = document.getElementById(numId);
+  if (bar) { bar.style.width = Math.max(0, Math.min(100, pct)).toFixed(1)+'%'; bar.style.background = color; }
+  if (num) { num.textContent = val.toFixed(2)+' Wh'; num.style.color = color; }
 }
 
-/* ════════════════════════════════════════════════════════
-   SLIDER HANDLERS
-════════════════════════════════════════════════════════ */
-function bindSlider(id, key, display, toVal, hintFn, badgeId, unit) {
-  const el = document.getElementById(id);
-  const badge = document.getElementById(badgeId);
-  el.addEventListener('input', () => {
-    const raw = parseFloat(el.value);
-    S[key] = toVal(raw);
-    badge.textContent = display(raw);
-    document.getElementById('hint-'+key.replace('_','-')).textContent = hintFn(S[key]);
-    updateAll();
-  });
-}
-
-function initSliders() {
-  // V0 슬라이더
-  const slV0 = document.getElementById('sl-v0');
-  const bdV0 = document.getElementById('v0-badge');
-  slV0.addEventListener('input', () => {
-    S.v0 = parseFloat(slV0.value);
-    bdV0.textContent = S.v0;
-    const v_ms = S.v0/3.6;
-    const pct = S.v0/120;
+/* ════════════════════════════════
+   SLIDERS
+════════════════════════════════ */
+function bindSliders() {
+  // V0
+  const sv0 = document.getElementById('sl-v0');
+  sv0.addEventListener('input', () => {
+    S.v0 = +sv0.value;
+    document.getElementById('v0-val').textContent = S.v0 + ' km/h';
+    const emf = vmax_emf(S.v0/3.6);
     document.getElementById('hint-v0').textContent =
-      S.v0 >= 100 ? `고속: V_max=${(P.K_e*(v_ms*P.G_r/P.r)).toFixed(0)}V — 높은 회생 에너지`
-      : S.v0 >= 50 ? `중속: 역기전력 ${(P.K_e*(v_ms*P.G_r/P.r)).toFixed(0)}V, 효율적 회생 구간`
-      : `저속: 역기전력이 작아 회생 효율이 낮습니다 (${(P.K_e*(v_ms*P.G_r/P.r)).toFixed(0)}V)`;
-    updateAll();
+      S.v0 >= 80 ? `고속: V_emf=${emf.toFixed(0)}V → 높은 회생 에너지`
+      : S.v0 >= 40 ? `중속: V_emf=${emf.toFixed(0)}V → 적정 회생 구간`
+      : `저속: V_emf=${emf.toFixed(0)}V → 회생 효율 낮음`;
+    staticRender();
   });
 
   // mass
-  const slM = document.getElementById('sl-mass');
-  const bdM = document.getElementById('mass-badge');
-  slM.addEventListener('input', () => {
-    S.mass = parseFloat(slM.value);
-    bdM.textContent = S.mass;
-    document.getElementById('hint-mass').textContent =
-      `m=${S.mass}kg 고정 → KE=½×${S.mass}×v² — 속도만이 에너지 결정`;
-    updateAll();
+  const sm = document.getElementById('sl-mass');
+  sm.addEventListener('input', () => {
+    S.mass = +sm.value;
+    document.getElementById('mass-val').textContent = S.mass + ' kg';
+    document.getElementById('hint-mass').textContent = `m=${S.mass}kg → KE=½×${S.mass}×v²`;
+    staticRender();
   });
 
   // vset
-  const slVs = document.getElementById('sl-vset');
-  const bdVs = document.getElementById('vset-badge');
-  slVs.addEventListener('input', () => {
-    S.vset = parseFloat(slVs.value);
-    bdVs.textContent = S.vset;
-    const thresh_kmh = (S.vset/P.K_e)*(P.r/P.G_r)*3.6;
-    document.getElementById('hint-vset').textContent =
-      `임계속도 ${thresh_kmh.toFixed(0)}km/h 이상이어야 충전 가능`;
-    updateAll();
+  const svs = document.getElementById('sl-vset');
+  svs.addEventListener('input', () => {
+    S.vset = +svs.value;
+    document.getElementById('vset-val').textContent = S.vset + ' V';
+    const thresh = (S.vset / PHY.K_e) * (PHY.r / PHY.G_r) * 3.6;
+    document.getElementById('hint-vset').textContent = `임계속도 ${thresh.toFixed(0)}km/h 이상 필요`;
+    staticRender();
   });
 
   // resistance
-  const slR = document.getElementById('sl-res');
-  const bdR = document.getElementById('res-badge');
-  slR.addEventListener('input', () => {
-    const raw = parseFloat(slR.value);
+  const sr = document.getElementById('sl-res');
+  sr.addEventListener('input', () => {
+    const raw = +sr.value;
     S.res = raw / 100;
-    bdR.textContent = S.res.toFixed(2);
-    document.getElementById('hint-res').textContent =
-      `R=${S.res.toFixed(2)}Ω — 동손 I²R=${(100*S.res*S.res/S.res).toFixed(1)}W (전류 100A 기준)`;
-    updateAll();
+    document.getElementById('res-val').textContent = S.res.toFixed(2) + ' Ω';
+    document.getElementById('hint-res').textContent = `R=${S.res.toFixed(2)}Ω → 동손 증가`;
+    staticRender();
   });
 }
 
-/* ════════════════════════════════════════════════════════
-   TAB NAVIGATION
-════════════════════════════════════════════════════════ */
-let activeTab = 1;
-function showTab(n, btn) {
-  document.querySelectorAll('.module-page').forEach(p => p.classList.remove('active'));
-  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-  document.getElementById('tab'+n).classList.add('active');
-  btn.classList.add('active');
-  activeTab = n;
-}
+/* ════════════════════════════════
+   CANVAS CLICK → 시뮬 시작
+════════════════════════════════ */
+canvas.addEventListener('click', () => {
+  if (anim.running && anim.v > 0.1) return; // 실행 중이면 무시
+  startAnim();
+});
 
-/* ════════════════════════════════════════════════════════
+/* ════════════════════════════════
    INIT
-════════════════════════════════════════════════════════ */
-document.addEventListener('DOMContentLoaded', () => {
-  initTab1();
-  initTab2();
-  initTab3();
-  initTab4();
-  initSliders();
-  updateAll();
+════════════════════════════════ */
+window.addEventListener('DOMContentLoaded', () => {
+  bindSliders();
+  resize();
+  // 초기 정적 렌더
+  anim.v = S.v0 / 3.6;
+  const calc = calcAll();
+  drawScene(calc);
+  updateUI(calc);
+
+  // 클릭 유도 텍스트
+  const W = canvas.width, H = canvas.height;
+  ctx.save();
+  ctx.fillStyle = 'rgba(0,230,118,0.55)';
+  ctx.font = 'bold 13px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('▶ 화면을 클릭하면 시뮬레이션이 시작됩니다', W/2, H*0.88);
+  ctx.restore();
+});
+
+window.addEventListener('resize', () => {
+  resize();
+  const calc = calcAll();
+  drawScene(calc);
 });
 </script>
 </body>
