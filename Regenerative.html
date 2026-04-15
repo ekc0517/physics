@@ -159,7 +159,8 @@ input[type=range].purple::-webkit-slider-thumb {
   font-size: 0.75rem;
   color: rgba(0,230,118,0.6);
   pointer-events: none;
-  transition: opacity 0.5s;
+  transition: opacity 0.4s;
+  white-space: nowrap;
 }
 
 /* 에너지 흐름 바 */
@@ -176,7 +177,7 @@ input[type=range].purple::-webkit-slider-thumb {
   background: var(--bg3); border-radius: 4px;
   overflow: hidden; border: 1px solid var(--border);
 }
-.flow-fill  { height: 100%; border-radius: 4px; transition: width 0.3s ease; }
+.flow-fill  { height: 100%; border-radius: 4px; transition: width 0.25s ease; }
 .flow-num   { width: 62px; font-size: 0.69rem; font-weight: 700; text-align: right; flex-shrink: 0; }
 
 /* RIGHT */
@@ -297,23 +298,23 @@ input[type=range].purple::-webkit-slider-thumb {
       <div style="font-size:0.63rem;color:var(--muted);letter-spacing:1px;text-transform:uppercase;margin-bottom:1px">에너지 흐름</div>
       <div class="flow-row">
         <div class="flow-lbl">운동에너지 KE</div>
-        <div class="flow-track"><div class="flow-fill" id="bar-ke" style="background:#448aff;width:100%"></div></div>
-        <div class="flow-num" id="num-ke" style="color:var(--blue)">— Wh</div>
+        <div class="flow-track"><div class="flow-fill" id="bar-ke"    style="background:#448aff;width:100%"></div></div>
+        <div class="flow-num"  id="num-ke"    style="color:var(--blue)">— Wh</div>
       </div>
       <div class="flow-row">
         <div class="flow-lbl">모터 변환 후</div>
         <div class="flow-track"><div class="flow-fill" id="bar-motor" style="background:#00c9a7;width:95%"></div></div>
-        <div class="flow-num" id="num-motor" style="color:#00c9a7">— Wh</div>
+        <div class="flow-num"  id="num-motor" style="color:#00c9a7">— Wh</div>
       </div>
       <div class="flow-row">
         <div class="flow-lbl">인버터 후</div>
-        <div class="flow-track"><div class="flow-fill" id="bar-inv" style="background:#00b09b;width:92%"></div></div>
-        <div class="flow-num" id="num-inv" style="color:#00b09b">— Wh</div>
+        <div class="flow-track"><div class="flow-fill" id="bar-inv"   style="background:#00b09b;width:92%"></div></div>
+        <div class="flow-num"  id="num-inv"   style="color:#00b09b">— Wh</div>
       </div>
       <div class="flow-row">
         <div class="flow-lbl">배터리 저장</div>
-        <div class="flow-track"><div class="flow-fill" id="bar-bat" style="background:#00e676;width:74%"></div></div>
-        <div class="flow-num" id="num-bat" style="color:var(--green)">— Wh</div>
+        <div class="flow-track"><div class="flow-fill" id="bar-bat"   style="background:#00e676;width:74%"></div></div>
+        <div class="flow-num"  id="num-bat"   style="color:var(--green)">— Wh</div>
       </div>
     </div>
   </main>
@@ -381,6 +382,13 @@ const PHY = {
 PHY.eta = PHY.eta_m * PHY.eta_inv * PHY.eta_bat * PHY.eta_br; // ≈ 0.7428
 
 /* ══════════════════════════════════════
+   SIMULATION SPEED SCALE
+   시각 시간을 실제의 N배 빠르게 재생
+   → 실제 80km/h 제동 ~7초를 약 3초로 압축
+══════════════════════════════════════ */
+const TIME_SCALE = 3.0;   // 클수록 빨리 끝남 (1 = 실시간)
+
+/* ══════════════════════════════════════
    SLIDER STATE
 ══════════════════════════════════════ */
 const S = { v0: 80, mass: 1800, vset: 360, res: 0.15 };
@@ -402,15 +410,15 @@ function calcAll() {
   const KE   = keWh(S.mass, v_ms);
   const Vmax = vmaxEmf(v_ms);
   const Imax = iMax(Vmax);
-  const chargeFactor = Math.min(1, Math.max(0, (Vmax - S.vset * 0.3) / (S.vset * 0.7)));
-  const E    = KE * PHY.eta * chargeFactor;
+  const cf   = Math.min(1, Math.max(0, (Vmax - S.vset * 0.3) / (S.vset * 0.7)));
+  const E    = KE * PHY.eta * cf;
   const eta  = KE > 0 ? (E / KE) * 100 : 0;
   const loss = KE - E;
   return { KE, Vmax, Imax, E, eta, loss };
 }
 
 /* ══════════════════════════════════════
-   CANVAS SETUP
+   CANVAS
 ══════════════════════════════════════ */
 const canvas = document.getElementById('scene');
 const ctx    = canvas.getContext('2d');
@@ -423,36 +431,37 @@ function resizeCanvas() {
 
 /* ══════════════════════════════════════
    SIMULATION STATE
-   — 모든 상태를 하나의 객체로 관리
 ══════════════════════════════════════ */
 const sim = {
-  /* 제어 */
   running:     false,
   rafId:       null,
-  lastTime:    null,   // RAF timestamp (ms)
+  lastTime:    null,
 
-  /* 물리 */
-  v:           0,      // 현재 속도 m/s
-  v0:          0,      // 초기 속도 m/s
-  a_dec:       0,      // 감속도 m/s²
-  E_acc:       0,      // 누적 회생 에너지 Wh
-  soc:         0.60,   // 배터리 SOC
+  v:           0,       // 현재 속도 m/s (시각용)
+  v0:          0,       // 초기 속도 m/s
+  a_dec:       0,       // 감속도 m/s²
+  E_acc:       0,       // 누적 회생 에너지 Wh
+  soc:         0.60,
 
-  /* 시각 */
   wheelAngle:  0,
   dashOffset:  0,
   particles:   [],
   bolts:       [],
+  _stopTimer:  null,
 };
 
 /* ══════════════════════════════════════
    START / STOP
 ══════════════════════════════════════ */
 function startSim() {
-  /* 이전 RAF 완전 취소 */
+  /* 진행 중인 RAF·타이머 완전 제거 */
   if (sim.rafId !== null) {
     cancelAnimationFrame(sim.rafId);
     sim.rafId = null;
+  }
+  if (sim._stopTimer !== null) {
+    clearTimeout(sim._stopTimer);
+    sim._stopTimer = null;
   }
 
   /* 상태 초기화 */
@@ -460,7 +469,14 @@ function startSim() {
   sim.lastTime   = null;
   sim.v0         = S.v0 / 3.6;
   sim.v          = sim.v0;
-  sim.a_dec      = 0.12 * 9.81;
+
+  /*
+   * 감속도 결정
+   * 물리 감속도 = 0.5g = 4.9 m/s²  (현실적인 강한 회생제동)
+   * TIME_SCALE 배 빠르게 감속시켜 화면 체감 시간 ≈ 2~3초
+   */
+  sim.a_dec      = 4.9 * TIME_SCALE;
+
   sim.E_acc      = 0;
   sim.soc        = 0.60;
   sim.wheelAngle = 0;
@@ -468,7 +484,8 @@ function startSim() {
   sim.particles  = [];
   sim.bolts      = [];
 
-  document.getElementById('click-hint').style.opacity = '0';
+  const hint = document.getElementById('click-hint');
+  hint.style.opacity = '0';
 
   sim.rafId = requestAnimationFrame(rafLoop);
 }
@@ -479,73 +496,78 @@ function stopSim() {
     cancelAnimationFrame(sim.rafId);
     sim.rafId = null;
   }
-  document.getElementById('click-hint').style.opacity = '1';
-  document.getElementById('click-hint').textContent = '▶ 클릭하여 다시 시작';
+  const hint = document.getElementById('click-hint');
+  hint.textContent   = '▶ 클릭하여 다시 시작';
+  hint.style.opacity = '1';
 }
 
 /* ══════════════════════════════════════
-   RAF LOOP  ← 핵심 수정 포인트
-   timestamp는 RAF가 자동 제공하는 DOMHighResTimeStamp
+   RAF LOOP
 ══════════════════════════════════════ */
 function rafLoop(timestamp) {
-  /* running 플래그가 false면 즉시 종료 (재귀 없음) */
   if (!sim.running) return;
 
-  /* dt 계산 — 첫 프레임은 0으로 처리 */
+  /* dt — 첫 프레임 0, 최대 50 ms 캡 */
   if (sim.lastTime === null) sim.lastTime = timestamp;
-  const dt = Math.min((timestamp - sim.lastTime) / 1000, 0.05); // 최대 50ms cap
+  const dt = Math.min((timestamp - sim.lastTime) / 1000, 0.05);
   sim.lastTime = timestamp;
 
-  /* ── 물리 업데이트 ── */
+  /* ── 물리 ── */
   if (sim.v > 0.05) {
     sim.v = Math.max(0, sim.v - sim.a_dec * dt);
 
-    /* 바퀴 회전 */
-    sim.wheelAngle += (sim.v / PHY.r) * dt;
+    /* 시각 효과는 원래 속도(TIME_SCALE 적용 전) 기준 */
+    const v_visual = sim.v; // 이미 빠른 속도로 감속 중
 
-    /* 차선 대시 오프셋 */
-    sim.dashOffset = (sim.dashOffset + sim.v * dt * 60) % 80;
+    sim.wheelAngle  += (v_visual / PHY.r) * dt;
+    sim.dashOffset   = (sim.dashOffset + v_visual * dt * 50) % 80;
 
-    /* 에너지 적산 */
-    const emf   = vmaxEmf(sim.v);
-    const I     = iMax(emf);
-    const P_raw = Math.max(0, emf * I * 0.9 - I * I * S.res - 200);
-    const P_reg = P_raw * PHY.eta_inv * PHY.eta_bat;
-    sim.E_acc  += P_reg * dt / 3600;
-    sim.soc     = Math.min(0.99, 0.60 + sim.E_acc / 75000);
+    /* 에너지 적산 — 물리적 시간(dt / TIME_SCALE)으로 계산 */
+    const dt_phys = dt / TIME_SCALE;
+    const emf     = vmaxEmf(sim.v);
+    const I       = iMax(emf);
+    const P_raw   = Math.max(0, emf * I * 0.9 - I * I * S.res - 200);
+    const P_reg   = P_raw * PHY.eta_inv * PHY.eta_bat;
+    sim.E_acc    += P_reg * dt_phys / 3600;
+    sim.soc       = Math.min(0.99, 0.60 + sim.E_acc / 75000);
+
+    /* 파티클 */
+    const W = canvas.width, H = canvas.height;
+    const roadY = H * 0.60;
+    const carCX = W * 0.42;
+    const carY  = roadY - H * 0.16;
+    const ratio = sim.v / sim.v0;
+
+    if (Math.random() < ratio * 0.45) {
+      sim.particles.push({
+        x: carCX + (Math.random() - 0.5) * 55,
+        y: carY  + (Math.random() - 0.5) * 28,
+        vx: (Math.random() - 0.5) * 2.2,
+        vy: -Math.random() * 3.2 - 0.4,
+        life: 1,
+        size: Math.random() * 3 + 1.5,
+      });
+    }
+    if (Math.random() < ratio * 0.12) {
+      sim.bolts.push({
+        x1: carCX + 55, y1: carY,
+        x2: carCX + 75 + Math.random() * 20,
+        y2: carY - 10  + Math.random() * 20,
+        life: 1,
+      });
+    }
   } else {
+    /* 정지 — 0.5초 후 종료 */
     sim.v = 0;
-    /* 정지 후 0.8초 뒤 자동 종료 */
-    if (!sim._stopTimer) {
+    if (sim._stopTimer === null) {
       sim._stopTimer = setTimeout(() => {
         sim._stopTimer = null;
         stopSim();
-      }, 800);
+      }, 500);
     }
   }
 
-  /* ── 파티클 ── */
-  if (sim.v > 1) {
-    const W = canvas.width, H = canvas.height;
-    const carCX = W * 0.42, carY = H * 0.60 - H * 0.16;
-    if (Math.random() < sim.v / sim.v0 * 0.5) {
-      sim.particles.push({
-        x: carCX + (Math.random() - 0.5) * 60,
-        y: carY  + (Math.random() - 0.5) * 30,
-        vx: (Math.random() - 0.5) * 2.5,
-        vy: -Math.random() * 3.5 - 0.5,
-        life: 1,
-        size: Math.random() * 3.5 + 1.5,
-      });
-    }
-    if (Math.random() < sim.v / sim.v0 * 0.15) {
-      const bx = carCX + 60 + Math.random() * 20;
-      const by = carY - 10 + Math.random() * 20;
-      sim.bolts.push({ x1: carCX + 55, y1: carY, x2: bx, y2: by, life: 1 });
-    }
-  }
-
-  /* 파티클 물리 */
+  /* 파티클·볼트 업데이트 */
   sim.particles = sim.particles.filter(p => p.life > 0.02);
   sim.particles.forEach(p => {
     p.x += p.vx; p.y += p.vy;
@@ -553,49 +575,48 @@ function rafLoop(timestamp) {
     p.life -= 0.03;
   });
   sim.bolts = sim.bolts.filter(b => b.life > 0.05);
-  sim.bolts.forEach(b => { b.life -= 0.15; });
+  sim.bolts.forEach(b => { b.life -= 0.18; });
 
-  /* ── 그리기 ── */
+  /* 그리기 */
   const calc = calcAll();
   drawScene(calc);
   updateUI(calc);
 
-  /* ── 다음 프레임 예약 ── */
   sim.rafId = requestAnimationFrame(rafLoop);
 }
 
 /* ══════════════════════════════════════
-   DRAW — 정적 렌더 (슬라이더 전용)
+   STATIC DRAW (슬라이더 조작 시)
 ══════════════════════════════════════ */
 function staticDraw() {
-  sim.v = S.v0 / 3.6;
-  const calc = calcAll();
-  drawScene(calc);
-  updateUI(calc);
+  sim.v   = S.v0 / 3.6;
+  sim.soc = 0.60;
+  drawScene(calcAll());
+  updateUI(calcAll());
 }
 
 /* ══════════════════════════════════════
-   SCENE DRAWING
+   SCENE
 ══════════════════════════════════════ */
 function drawScene(calc) {
   const W = canvas.width, H = canvas.height;
-  if (W === 0 || H === 0) return;
+  if (!W || !H) return;
   ctx.clearRect(0, 0, W, H);
 
   const roadY = H * 0.60;
-
   drawSky(W, H);
-  drawBuildings(W, roadY);
   drawMountains(W, roadY);
+  drawBuildings(W, roadY);
   drawRoad(W, H, roadY);
   drawCar(W, H, roadY, calc);
   drawParticles();
   drawBolts();
-  drawSpeedGauge(W, H, roadY);
+  drawSpeedGauge(H);
   drawBattery(W, H);
   drawRegenLabel(W, H, roadY, calc);
 }
 
+/* ── Sky ── */
 function drawSky(W, H) {
   const g = ctx.createLinearGradient(0, 0, 0, H * 0.6);
   g.addColorStop(0, '#08080f');
@@ -603,269 +624,149 @@ function drawSky(W, H) {
   ctx.fillStyle = g;
   ctx.fillRect(0, 0, W, H);
 
-  /* 별 (고정 시드) */
-  const starList = [
-    [0.08,0.06],[0.18,0.12],[0.30,0.04],[0.42,0.09],
-    [0.55,0.03],[0.67,0.11],[0.78,0.05],[0.88,0.08],[0.95,0.14],
-  ];
-  ctx.fillStyle = 'rgba(255,255,255,0.4)';
-  starList.forEach(([fx, fy]) => {
-    ctx.beginPath();
-    ctx.arc(fx * W, fy * H, 1.2, 0, Math.PI * 2);
-    ctx.fill();
+  ctx.fillStyle = 'rgba(255,255,255,0.38)';
+  [[.08,.06],[.20,.11],[.33,.04],[.46,.09],[.57,.03],[.70,.12],[.81,.05],[.92,.08]].forEach(([fx,fy]) => {
+    ctx.beginPath(); ctx.arc(fx*W, fy*H, 1.2, 0, Math.PI*2); ctx.fill();
   });
 }
 
+/* ── Mountains ── */
 function drawMountains(W, roadY) {
   ctx.fillStyle = '#0c0c18';
-  ctx.beginPath();
-  ctx.moveTo(0, roadY);
-  const pts = [
-    [0.00, 0.80],[0.08, 0.62],[0.18, 0.75],[0.28, 0.52],
-    [0.40, 0.70],[0.52, 0.48],[0.63, 0.68],[0.75, 0.46],
-    [0.85, 0.65],[0.93, 0.54],[1.00, 0.72],
-  ];
-  pts.forEach(([fx, fy]) => ctx.lineTo(W * fx, roadY * fy));
-  ctx.lineTo(W, roadY);
-  ctx.closePath();
-  ctx.fill();
+  ctx.beginPath(); ctx.moveTo(0, roadY);
+  [[0,.80],[.10,.60],[.20,.74],[.32,.50],[.44,.68],[.56,.46],[.68,.66],[.80,.44],[.91,.63],[1,.72]].forEach(([fx,fy]) => ctx.lineTo(W*fx, roadY*fy));
+  ctx.lineTo(W, roadY); ctx.closePath(); ctx.fill();
 }
 
+/* ── Buildings ── */
 function drawBuildings(W, roadY) {
-  const blds = [
-    [0.02, 0.30, 0.055, 0.50],
-    [0.08, 0.22, 0.048, 0.50],
-    [0.14, 0.36, 0.038, 0.50],
-    [0.64, 0.26, 0.055, 0.50],
-    [0.71, 0.17, 0.048, 0.50],
-    [0.78, 0.33, 0.062, 0.50],
-    [0.87, 0.24, 0.048, 0.50],
-    [0.93, 0.38, 0.055, 0.50],
-  ];
-
-  blds.forEach(([fx, fy, fw, fh]) => {
-    const bx = W * fx, by = roadY * fy;
-    const bw = W * fw, bh = roadY * (fh - fy);
-    ctx.fillStyle = '#0f0f1d';
-    ctx.fillRect(bx, by, bw, bh);
-
-    /* 창문 격자 */
-    const cols = 3, rows = 4;
-    const cw = bw / (cols + 1), ch = bh / (rows + 1);
-    for (let ci = 0; ci < cols; ci++) {
-      for (let ri = 0; ri < rows; ri++) {
-        const lit = ((ci * 7 + ri * 3 + Math.floor(fx * 100)) % 5) > 1;
-        ctx.fillStyle = lit ? 'rgba(255,220,120,0.15)' : 'rgba(0,0,0,0)';
-        ctx.fillRect(bx + cw * (ci + 0.3), by + ch * (ri + 0.3), cw * 0.5, ch * 0.5);
-      }
+  [[.02,.30,.05,.50],[.08,.22,.045,.50],[.14,.36,.038,.50],
+   [.65,.26,.05,.50],[.72,.17,.046,.50],[.79,.33,.06,.50],[.88,.24,.046,.50],[.94,.38,.05,.50]
+  ].forEach(([fx,fy,fw,fh]) => {
+    const bx=W*fx, by=roadY*fy, bw=W*fw, bh=roadY*(fh-fy);
+    ctx.fillStyle='#0f0f1d'; ctx.fillRect(bx,by,bw,bh);
+    for (let c=0;c<3;c++) for (let r=0;r<4;r++) {
+      const lit=((c*7+r*3+Math.floor(fx*100))%5)>1;
+      if(lit){ ctx.fillStyle='rgba(255,220,120,0.14)'; ctx.fillRect(bx+bw/(3+1)*(c+.3),by+bh/(4+1)*(r+.3),bw/(3+1)*.5,bh/(4+1)*.5); }
     }
   });
 }
 
+/* ── Road ── */
 function drawRoad(W, H, roadY) {
-  /* 도로 면 */
   const g = ctx.createLinearGradient(0, roadY, 0, H);
-  g.addColorStop(0, '#18182a');
-  g.addColorStop(1, '#0c0c16');
-  ctx.fillStyle = g;
-  ctx.fillRect(0, roadY, W, H - roadY);
+  g.addColorStop(0, '#18182a'); g.addColorStop(1, '#0c0c16');
+  ctx.fillStyle = g; ctx.fillRect(0, roadY, W, H-roadY);
 
-  /* 경계선 */
-  ctx.strokeStyle = 'rgba(255,255,255,0.06)';
-  ctx.lineWidth = 1;
-  ctx.beginPath();
-  ctx.moveTo(0, roadY); ctx.lineTo(W, roadY);
-  ctx.stroke();
+  ctx.strokeStyle='rgba(255,255,255,0.05)'; ctx.lineWidth=1;
+  ctx.beginPath(); ctx.moveTo(0,roadY); ctx.lineTo(W,roadY); ctx.stroke();
 
-  /* 차선 */
   ctx.save();
-  ctx.strokeStyle = 'rgba(255,220,50,0.22)';
-  ctx.lineWidth = 2;
-  ctx.setLineDash([50, 30]);
-  ctx.lineDashOffset = -sim.dashOffset;
-  ctx.beginPath();
-  ctx.moveTo(0, roadY + (H - roadY) * 0.5);
-  ctx.lineTo(W, roadY + (H - roadY) * 0.5);
-  ctx.stroke();
-  ctx.setLineDash([]);
-  ctx.restore();
+  ctx.strokeStyle='rgba(255,220,50,0.20)'; ctx.lineWidth=2;
+  ctx.setLineDash([50,30]); ctx.lineDashOffset=-sim.dashOffset;
+  ctx.beginPath(); ctx.moveTo(0,roadY+(H-roadY)*.5); ctx.lineTo(W,roadY+(H-roadY)*.5); ctx.stroke();
+  ctx.setLineDash([]); ctx.restore();
 }
 
+/* ── Car ── */
 function drawCar(W, H, roadY, calc) {
   const carW  = Math.min(W * 0.24, 200);
   const carH  = carW * 0.44;
   const carCX = W * 0.42;
   const carY  = roadY - carH * 0.65;
-
-  const intensity = sim.v0 > 0 ? sim.v / sim.v0 : 1;
-  const braking   = sim.running && sim.v > 0.2;
+  const braking = sim.running && sim.v > 0.2;
 
   /* 그림자 */
   ctx.save();
-  ctx.fillStyle = 'rgba(0,0,0,0.30)';
-  ctx.beginPath();
-  ctx.ellipse(carCX, roadY + 4, carW * 0.40, carH * 0.10, 0, 0, Math.PI * 2);
-  ctx.fill();
+  ctx.fillStyle='rgba(0,0,0,0.28)';
+  ctx.beginPath(); ctx.ellipse(carCX, roadY+4, carW*.40, carH*.09, 0, 0, Math.PI*2); ctx.fill();
   ctx.restore();
 
   /* 차체 하단 */
-  const bodyG = ctx.createLinearGradient(carCX - carW/2, carY + carH*0.35, carCX - carW/2, carY + carH);
-  bodyG.addColorStop(0, '#28304e');
-  bodyG.addColorStop(0.6, '#1c2240');
-  bodyG.addColorStop(1, '#12162c');
-  ctx.fillStyle = bodyG;
-  ctx.beginPath();
-  rr(ctx, carCX - carW/2, carY + carH*0.33, carW, carH*0.67, 6);
-  ctx.fill();
+  const bg=ctx.createLinearGradient(carCX-carW/2,carY+carH*.35,carCX-carW/2,carY+carH);
+  bg.addColorStop(0,'#28304e'); bg.addColorStop(.6,'#1c2240'); bg.addColorStop(1,'#12162c');
+  ctx.fillStyle=bg; ctx.beginPath(); rr(ctx,carCX-carW/2,carY+carH*.33,carW,carH*.67,6); ctx.fill();
 
   /* 차체 상단 */
-  const roofG = ctx.createLinearGradient(carCX - carW*0.3, carY, carCX - carW*0.3, carY + carH*0.40);
-  roofG.addColorStop(0, '#323a60');
-  roofG.addColorStop(1, '#1e2650');
-  ctx.fillStyle = roofG;
-  ctx.beginPath();
-  rr(ctx, carCX - carW*0.28, carY, carW*0.56, carH*0.40, 8);
-  ctx.fill();
+  const rg=ctx.createLinearGradient(0,carY,0,carY+carH*.40);
+  rg.addColorStop(0,'#323a60'); rg.addColorStop(1,'#1e2650');
+  ctx.fillStyle=rg; ctx.beginPath(); rr(ctx,carCX-carW*.28,carY,carW*.56,carH*.40,8); ctx.fill();
 
-  /* 창문 앞 */
-  const winG = ctx.createLinearGradient(carCX, carY, carCX, carY + carH*0.35);
-  winG.addColorStop(0, 'rgba(110,170,255,0.55)');
-  winG.addColorStop(1, 'rgba(50,100,200,0.25)');
-  ctx.fillStyle = winG;
-  ctx.beginPath();
-  rr(ctx, carCX + carW*0.04, carY + carH*0.04, carW*0.20, carH*0.30, 4);
-  ctx.fill();
-
-  /* 창문 뒤 */
-  ctx.fillStyle = winG;
-  ctx.beginPath();
-  rr(ctx, carCX - carW*0.25, carY + carH*0.05, carW*0.26, carH*0.28, 4);
-  ctx.fill();
+  /* 창문 */
+  const wg=ctx.createLinearGradient(0,carY,0,carY+carH*.35);
+  wg.addColorStop(0,'rgba(110,170,255,0.52)'); wg.addColorStop(1,'rgba(50,100,200,0.22)');
+  ctx.fillStyle=wg;
+  ctx.beginPath(); rr(ctx,carCX+carW*.04,carY+carH*.04,carW*.20,carH*.30,4); ctx.fill();
+  ctx.beginPath(); rr(ctx,carCX-carW*.25,carY+carH*.05,carW*.26,carH*.28,4); ctx.fill();
 
   /* 하이라이트 */
-  ctx.save();
-  ctx.strokeStyle = 'rgba(100,140,255,0.25)';
-  ctx.lineWidth = 1.5;
-  ctx.beginPath();
-  ctx.moveTo(carCX - carW*0.45, carY + carH*0.48);
-  ctx.lineTo(carCX + carW*0.45, carY + carH*0.48);
-  ctx.stroke();
-  ctx.restore();
+  ctx.save(); ctx.strokeStyle='rgba(100,140,255,0.22)'; ctx.lineWidth=1.5;
+  ctx.beginPath(); ctx.moveTo(carCX-carW*.45,carY+carH*.48); ctx.lineTo(carCX+carW*.45,carY+carH*.48); ctx.stroke(); ctx.restore();
 
   /* 전조등 */
-  ctx.save();
-  ctx.fillStyle = 'rgba(200,230,255,0.95)';
-  ctx.shadowColor = '#a0c8ff'; ctx.shadowBlur = 18;
-  ctx.beginPath();
-  ctx.ellipse(carCX + carW*0.46, carY + carH*0.44, carW*0.038, carH*0.07, 0, 0, Math.PI*2);
-  ctx.fill();
-  ctx.restore();
+  ctx.save(); ctx.fillStyle='rgba(200,230,255,0.95)'; ctx.shadowColor='#a0c8ff'; ctx.shadowBlur=16;
+  ctx.beginPath(); ctx.ellipse(carCX+carW*.46,carY+carH*.44,carW*.036,carH*.068,0,0,Math.PI*2); ctx.fill(); ctx.restore();
 
   /* 후미등 */
   ctx.save();
-  ctx.fillStyle = braking ? '#ff2020' : 'rgba(140,0,0,0.55)';
+  ctx.fillStyle   = braking ? '#ff2020' : 'rgba(130,0,0,0.5)';
   ctx.shadowColor = braking ? '#ff0000' : 'transparent';
   ctx.shadowBlur  = braking ? 20 : 0;
-  ctx.beginPath();
-  ctx.ellipse(carCX - carW*0.46, carY + carH*0.44, carW*0.032, carH*0.065, 0, 0, Math.PI*2);
-  ctx.fill();
-  ctx.restore();
+  ctx.beginPath(); ctx.ellipse(carCX-carW*.46,carY+carH*.44,carW*.030,carH*.062,0,0,Math.PI*2); ctx.fill(); ctx.restore();
 
   /* EV 뱃지 */
   ctx.save();
-  ctx.fillStyle   = 'rgba(0,230,118,0.12)';
-  ctx.strokeStyle = 'rgba(0,230,118,0.45)';
-  ctx.lineWidth   = 1;
-  ctx.beginPath();
-  rr(ctx, carCX - carW*0.11, carY + carH*0.54, carW*0.22, carH*0.20, 4);
-  ctx.fill(); ctx.stroke();
-  ctx.fillStyle   = '#00e676';
-  ctx.font        = `bold ${Math.round(carH * 0.13)}px monospace`;
-  ctx.textAlign   = 'center';
-  ctx.fillText('EV', carCX, carY + carH*0.69);
-  ctx.restore();
+  ctx.fillStyle='rgba(0,230,118,0.11)'; ctx.strokeStyle='rgba(0,230,118,0.42)'; ctx.lineWidth=1;
+  ctx.beginPath(); rr(ctx,carCX-carW*.11,carY+carH*.54,carW*.22,carH*.20,4); ctx.fill(); ctx.stroke();
+  ctx.fillStyle='#00e676'; ctx.font=`bold ${Math.round(carH*.13)}px monospace`;
+  ctx.textAlign='center'; ctx.fillText('EV',carCX,carY+carH*.69); ctx.restore();
 
   /* 바퀴 */
-  drawWheel(ctx, carCX + carW*0.30, roadY,      carH*0.24, sim.wheelAngle);
-  drawWheel(ctx, carCX - carW*0.26, roadY,      carH*0.24, sim.wheelAngle);
+  drawWheel(carCX+carW*.30, roadY,  carH*.23);
+  drawWheel(carCX-carW*.26, roadY,  carH*.23);
 
-  /* 회생 에너지 호 */
-  if (braking) drawRegenArc(carCX, carY - carH*0.18, carW*0.50, calc);
+  /* 회생 호 */
+  if (braking) drawRegenArc(carCX, carY-carH*.18, carW*.48, calc);
 }
 
-function drawWheel(ctx, cx, cy, r, angle) {
-  /* 타이어 */
+function drawWheel(cx, cy, r) {
   ctx.save();
-  ctx.fillStyle   = '#111';
-  ctx.strokeStyle = '#252535';
-  ctx.lineWidth   = 2;
-  ctx.beginPath();
-  ctx.arc(cx, cy, r, 0, Math.PI * 2);
-  ctx.fill(); ctx.stroke();
-
-  /* 림 */
-  ctx.translate(cx, cy);
-  ctx.rotate(angle);
-  ctx.strokeStyle = '#3a4470';
-  ctx.lineWidth   = 1.5;
-  for (let i = 0; i < 5; i++) {
-    const a = (i / 5) * Math.PI * 2;
-    ctx.beginPath();
-    ctx.moveTo(0, 0);
-    ctx.lineTo(Math.cos(a) * (r - 3), Math.sin(a) * (r - 3));
-    ctx.stroke();
+  ctx.fillStyle='#111'; ctx.strokeStyle='#252535'; ctx.lineWidth=2;
+  ctx.beginPath(); ctx.arc(cx,cy,r,0,Math.PI*2); ctx.fill(); ctx.stroke();
+  ctx.translate(cx,cy); ctx.rotate(sim.wheelAngle);
+  ctx.strokeStyle='#3a4470'; ctx.lineWidth=1.5;
+  for(let i=0;i<5;i++){
+    const a=(i/5)*Math.PI*2;
+    ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(Math.cos(a)*(r-3),Math.sin(a)*(r-3)); ctx.stroke();
   }
-  ctx.fillStyle = '#2e3860';
-  ctx.beginPath();
-  ctx.arc(0, 0, r * 0.28, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.fillStyle = '#4a5888';
-  ctx.beginPath();
-  ctx.arc(0, 0, r * 0.10, 0, Math.PI * 2);
-  ctx.fill();
+  ctx.fillStyle='#2e3860'; ctx.beginPath(); ctx.arc(0,0,r*.28,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle='#4a5888'; ctx.beginPath(); ctx.arc(0,0,r*.10,0,Math.PI*2); ctx.fill();
   ctx.restore();
 }
 
 function drawRegenArc(cx, cy, r, calc) {
-  const pct = Math.min(1, calc.eta / 100);
-  if (pct <= 0) return;
+  if (calc.eta <= 0) return;
+  const frac = sim.v0 > 0 ? Math.max(0, 1 - sim.v/sim.v0) : 0;
 
   ctx.save();
-  /* 배경 트랙 */
-  ctx.beginPath();
-  ctx.arc(cx, cy, r, Math.PI, 2 * Math.PI);
-  ctx.strokeStyle = 'rgba(255,255,255,0.06)';
-  ctx.lineWidth   = 5;
-  ctx.lineCap     = 'round';
-  ctx.stroke();
+  ctx.beginPath(); ctx.arc(cx,cy,r,Math.PI,2*Math.PI);
+  ctx.strokeStyle='rgba(255,255,255,0.05)'; ctx.lineWidth=5; ctx.lineCap='round'; ctx.stroke();
 
-  /* 에너지 */
-  const frac = sim.v0 > 0 ? (1 - sim.v / sim.v0) : 0;
-  ctx.beginPath();
-  ctx.arc(cx, cy, r, Math.PI, Math.PI + frac * Math.PI);
-  ctx.strokeStyle = '#00e676';
-  ctx.shadowColor = '#00e676';
-  ctx.shadowBlur  = 12;
-  ctx.stroke();
+  ctx.beginPath(); ctx.arc(cx,cy,r,Math.PI,Math.PI+frac*Math.PI);
+  ctx.strokeStyle='#00e676'; ctx.shadowColor='#00e676'; ctx.shadowBlur=12; ctx.stroke();
 
-  ctx.shadowBlur = 0;
-  ctx.fillStyle  = 'rgba(0,230,118,0.8)';
-  ctx.font       = `bold 10px monospace`;
-  ctx.textAlign  = 'center';
-  ctx.fillText(`η ${calc.eta.toFixed(0)}%`, cx, cy + 14);
+  ctx.shadowBlur=0; ctx.fillStyle='rgba(0,230,118,0.8)';
+  ctx.font='bold 10px monospace'; ctx.textAlign='center';
+  ctx.fillText(`η ${calc.eta.toFixed(0)}%`,cx,cy+14);
   ctx.restore();
 }
 
 function drawParticles() {
   sim.particles.forEach(p => {
     ctx.save();
-    ctx.globalAlpha = Math.max(0, p.life * 0.9);
-    ctx.fillStyle   = '#00e676';
-    ctx.shadowColor = '#00e676';
-    ctx.shadowBlur  = 8;
-    ctx.beginPath();
-    ctx.arc(p.x, p.y, p.size * Math.max(0, p.life), 0, Math.PI * 2);
-    ctx.fill();
+    ctx.globalAlpha=Math.max(0,p.life*.85);
+    ctx.fillStyle='#00e676'; ctx.shadowColor='#00e676'; ctx.shadowBlur=7;
+    ctx.beginPath(); ctx.arc(p.x,p.y,p.size*Math.max(0,p.life),0,Math.PI*2); ctx.fill();
     ctx.restore();
   });
 }
@@ -873,150 +774,90 @@ function drawParticles() {
 function drawBolts() {
   sim.bolts.forEach(b => {
     ctx.save();
-    ctx.globalAlpha  = Math.max(0, b.life * 0.7);
-    ctx.strokeStyle  = '#ffd740';
-    ctx.shadowColor  = '#ffd740';
-    ctx.shadowBlur   = 10;
-    ctx.lineWidth    = 1.5;
-    /* 지그재그 */
-    const segs = 5;
-    const pts  = [[b.x1, b.y1]];
-    for (let i = 1; i < segs; i++) {
-      const t  = i / segs;
-      const mx = b.x1 + (b.x2 - b.x1) * t + (Math.random() - 0.5) * 16;
-      const my = b.y1 + (b.y2 - b.y1) * t + (Math.random() - 0.5) * 12;
-      pts.push([mx, my]);
+    ctx.globalAlpha=Math.max(0,b.life*.65);
+    ctx.strokeStyle='#ffd740'; ctx.shadowColor='#ffd740'; ctx.shadowBlur=9; ctx.lineWidth=1.5;
+    const pts=[[b.x1,b.y1]];
+    for(let i=1;i<5;i++){
+      const t=i/5;
+      pts.push([b.x1+(b.x2-b.x1)*t+(Math.random()-.5)*14, b.y1+(b.y2-b.y1)*t+(Math.random()-.5)*10]);
     }
-    pts.push([b.x2, b.y2]);
-    ctx.beginPath();
-    ctx.moveTo(pts[0][0], pts[0][1]);
-    pts.slice(1).forEach(p => ctx.lineTo(p[0], p[1]));
-    ctx.stroke();
+    pts.push([b.x2,b.y2]);
+    ctx.beginPath(); ctx.moveTo(pts[0][0],pts[0][1]);
+    pts.slice(1).forEach(p=>ctx.lineTo(p[0],p[1])); ctx.stroke();
     ctx.restore();
   });
 }
 
-function drawSpeedGauge(W, H, roadY) {
-  const cx = 48, cy = H * 0.12, R = 34;
-  const startA = Math.PI * 0.75, endA = Math.PI * 2.25;
-  const v_kmh  = sim.v * 3.6;
-  const pct    = sim.v0 > 0 ? Math.min(1, sim.v / sim.v0) : (S.v0 / 120);
+/* ── Speed Gauge ── */
+function drawSpeedGauge(H) {
+  const cx=48, cy=H*.12, R=34;
+  const sa=Math.PI*.75, ea=Math.PI*2.25;
+  const pct = sim.v0>0 ? Math.min(1,sim.v/sim.v0) : Math.min(1,S.v0/120);
 
-  /* 배경 원 */
   ctx.save();
-  ctx.fillStyle   = 'rgba(13,13,22,0.80)';
-  ctx.strokeStyle = 'rgba(255,255,255,0.05)';
-  ctx.lineWidth   = 1;
-  ctx.beginPath();
-  ctx.arc(cx, cy, R + 9, 0, Math.PI * 2);
-  ctx.fill(); ctx.stroke();
+  ctx.fillStyle='rgba(13,13,22,0.78)'; ctx.strokeStyle='rgba(255,255,255,0.04)'; ctx.lineWidth=1;
+  ctx.beginPath(); ctx.arc(cx,cy,R+9,0,Math.PI*2); ctx.fill(); ctx.stroke();
 
-  /* 트랙 */
-  ctx.beginPath();
-  ctx.arc(cx, cy, R, startA, endA);
-  ctx.strokeStyle = 'rgba(255,255,255,0.06)';
-  ctx.lineWidth   = 5;
-  ctx.lineCap     = 'round';
-  ctx.stroke();
+  ctx.beginPath(); ctx.arc(cx,cy,R,sa,ea);
+  ctx.strokeStyle='rgba(255,255,255,0.05)'; ctx.lineWidth=5; ctx.lineCap='round'; ctx.stroke();
 
-  /* 속도 호 */
-  const curA = startA + pct * (endA - startA);
-  const g    = ctx.createLinearGradient(cx - R, cy, cx + R, cy);
-  g.addColorStop(0, '#448aff'); g.addColorStop(1, '#00e676');
-  ctx.beginPath();
-  ctx.arc(cx, cy, R, startA, curA);
-  ctx.strokeStyle  = g;
-  ctx.shadowColor  = '#448aff';
-  ctx.shadowBlur   = 10;
-  ctx.stroke();
+  const g=ctx.createLinearGradient(cx-R,cy,cx+R,cy);
+  g.addColorStop(0,'#448aff'); g.addColorStop(1,'#00e676');
+  ctx.beginPath(); ctx.arc(cx,cy,R,sa,sa+pct*(ea-sa));
+  ctx.strokeStyle=g; ctx.shadowColor='#448aff'; ctx.shadowBlur=9; ctx.stroke();
 
-  /* 숫자 */
-  ctx.shadowBlur   = 0;
-  ctx.fillStyle    = '#e0e0f0';
-  ctx.font         = 'bold 14px monospace';
-  ctx.textAlign    = 'center';
-  ctx.textBaseline = 'middle';
-  ctx.fillText(Math.round(v_kmh), cx, cy - 1);
-  ctx.font         = '8px sans-serif';
-  ctx.fillStyle    = 'rgba(170,170,210,0.55)';
-  ctx.fillText('km/h', cx, cy + 13);
+  ctx.shadowBlur=0;
+  ctx.fillStyle='#e0e0f0'; ctx.font='bold 14px monospace';
+  ctx.textAlign='center'; ctx.textBaseline='middle';
+  ctx.fillText(Math.round(sim.v*3.6),cx,cy-1);
+  ctx.font='8px sans-serif'; ctx.fillStyle='rgba(170,170,210,0.5)';
+  ctx.fillText('km/h',cx,cy+13);
   ctx.restore();
 }
 
+/* ── Battery ── */
 function drawBattery(W, H) {
-  const bw = 28, bh = 80;
-  const bx = W - 60, by = H * 0.06;
+  const bw=28, bh=80, bx=W-60, by=H*.06;
 
-  /* 배경 */
   ctx.save();
-  ctx.fillStyle   = 'rgba(13,13,22,0.80)';
-  ctx.strokeStyle = 'rgba(255,255,255,0.05)';
-  ctx.lineWidth   = 1;
-  ctx.beginPath();
-  rr(ctx, bx - 12, by - 10, bw + 24, bh + 36, 8);
-  ctx.fill(); ctx.stroke();
+  ctx.fillStyle='rgba(13,13,22,0.78)'; ctx.strokeStyle='rgba(255,255,255,0.04)'; ctx.lineWidth=1;
+  ctx.beginPath(); rr(ctx,bx-12,by-10,bw+24,bh+36,8); ctx.fill(); ctx.stroke();
 
-  /* 캡 */
-  ctx.fillStyle = 'rgba(255,255,255,0.08)';
-  ctx.beginPath();
-  rr(ctx, bx + bw*0.2, by - 5, bw*0.6, 6, 2);
-  ctx.fill();
+  ctx.fillStyle='rgba(255,255,255,0.07)';
+  ctx.beginPath(); rr(ctx,bx+bw*.2,by-5,bw*.6,6,2); ctx.fill();
 
-  /* 케이스 */
-  ctx.strokeStyle = 'rgba(255,255,255,0.10)';
-  ctx.lineWidth   = 1.5;
-  ctx.fillStyle   = '#0e0e1a';
-  ctx.beginPath();
-  rr(ctx, bx, by, bw, bh, 4);
-  ctx.fill(); ctx.stroke();
+  ctx.strokeStyle='rgba(255,255,255,0.09)'; ctx.lineWidth=1.5;
+  ctx.fillStyle='#0e0e1a';
+  ctx.beginPath(); rr(ctx,bx,by,bw,bh,4); ctx.fill(); ctx.stroke();
 
-  /* 충전 레벨 */
-  const soc    = sim.soc;
-  const fillH  = bh * Math.min(1, Math.max(0, soc));
-  const fillY  = by + bh - fillH;
-  const fg     = ctx.createLinearGradient(0, fillY, 0, by + bh);
-  if      (soc > 0.60) { fg.addColorStop(0,'#00e676'); fg.addColorStop(1,'#00c853'); }
-  else if (soc > 0.30) { fg.addColorStop(0,'#ffd740'); fg.addColorStop(1,'#ff9800'); }
-  else                 { fg.addColorStop(0,'#ff5252'); fg.addColorStop(1,'#d32f2f'); }
+  const fillH=bh*Math.min(1,Math.max(0,sim.soc));
+  const fillY=by+bh-fillH;
+  const fg=ctx.createLinearGradient(0,fillY,0,by+bh);
+  if(sim.soc>.60){fg.addColorStop(0,'#00e676');fg.addColorStop(1,'#00c853');}
+  else if(sim.soc>.30){fg.addColorStop(0,'#ffd740');fg.addColorStop(1,'#ff9800');}
+  else{fg.addColorStop(0,'#ff5252');fg.addColorStop(1,'#d32f2f');}
+  ctx.fillStyle=fg; ctx.shadowColor=sim.soc>.60?'#00e676':'#ffd740'; ctx.shadowBlur=7;
+  ctx.beginPath(); rr(ctx,bx+2,fillY,bw-4,fillH,3); ctx.fill();
 
-  ctx.fillStyle   = fg;
-  ctx.shadowColor = soc > 0.60 ? '#00e676' : '#ffd740';
-  ctx.shadowBlur  = 8;
-  ctx.beginPath();
-  rr(ctx, bx + 2, fillY, bw - 4, fillH, 3);
-  ctx.fill();
-
-  /* % */
-  ctx.shadowBlur   = 0;
-  ctx.fillStyle    = '#e0e0f0';
-  ctx.font         = 'bold 10px monospace';
-  ctx.textAlign    = 'center';
-  ctx.textBaseline = 'alphabetic';
-  ctx.fillText((soc * 100).toFixed(0) + '%', bx + bw/2, by + bh + 16);
-  ctx.font      = '8px sans-serif';
-  ctx.fillStyle = 'rgba(170,170,210,0.50)';
-  ctx.fillText('SOC', bx + bw/2, by + bh + 27);
+  ctx.shadowBlur=0;
+  ctx.fillStyle='#e0e0f0'; ctx.font='bold 10px monospace';
+  ctx.textAlign='center'; ctx.textBaseline='alphabetic';
+  ctx.fillText((sim.soc*100).toFixed(0)+'%',bx+bw/2,by+bh+16);
+  ctx.font='8px sans-serif'; ctx.fillStyle='rgba(170,170,210,0.48)';
+  ctx.fillText('SOC',bx+bw/2,by+bh+27);
   ctx.restore();
 }
 
+/* ── Regen Label ── */
 function drawRegenLabel(W, H, roadY, calc) {
   if (!sim.running || sim.v < 0.3) return;
   const carCX = W * 0.42;
-
   ctx.save();
-  ctx.textAlign = 'left';
-
-  /* 현재 V_emf */
-  const emf = vmaxEmf(sim.v);
-  ctx.fillStyle = 'rgba(68,138,255,0.85)';
-  ctx.font      = 'bold 11px monospace';
-  ctx.fillText(`V_emf: ${emf.toFixed(0)} V`, carCX + W*0.10, roadY - H*0.12);
-
-  /* 회생 화살표 라벨 */
-  ctx.fillStyle = 'rgba(0,230,118,0.75)';
-  ctx.font      = '10px sans-serif';
-  ctx.fillText('⚡ 회생 충전 중', carCX + W*0.10, roadY - H*0.06);
-
+  ctx.textAlign='left';
+  ctx.fillStyle='rgba(68,138,255,0.82)'; ctx.font='bold 11px monospace';
+  ctx.fillText(`V_emf: ${vmaxEmf(sim.v).toFixed(0)} V`, carCX+W*.10, roadY-H*.12);
+  ctx.fillStyle='rgba(0,230,118,0.72)'; ctx.font='10px sans-serif';
+  ctx.fillText('⚡ 회생 충전 중', carCX+W*.10, roadY-H*.065);
   ctx.restore();
 }
 
@@ -1031,60 +872,42 @@ function updateUI(calc) {
   setText('kpi-imax', calc.Imax.toFixed(1));
   setText('kpi-loss', calc.loss.toFixed(2));
 
-  /* 에너지 바 */
-  const KE = calc.KE;
-  if (KE > 0) {
-    const am  = KE * PHY.eta_m;
-    const ai  = am * PHY.eta_inv;
-    const ab  = ai * PHY.eta_bat * PHY.eta_br;
-    setBar('bar-ke',    100,           'num-ke',    KE, '#448aff');
-    setBar('bar-motor', (am/KE)*100,   'num-motor', am, '#00c9a7');
-    setBar('bar-inv',   (ai/KE)*100,   'num-inv',   ai, '#00b09b');
-    setBar('bar-bat',   (ab/KE)*100,   'num-bat',   ab, '#00e676');
+  if (calc.KE > 0) {
+    const am=calc.KE*PHY.eta_m, ai=am*PHY.eta_inv, ab=ai*PHY.eta_bat*PHY.eta_br;
+    setBar('bar-ke',   100,           'num-ke',    calc.KE,'#448aff');
+    setBar('bar-motor',(am/calc.KE)*100,'num-motor',am,'#00c9a7');
+    setBar('bar-inv',  (ai/calc.KE)*100,'num-inv',  ai,'#00b09b');
+    setBar('bar-bat',  (ab/calc.KE)*100,'num-bat',  ab,'#00e676');
   }
 
-  /* 충전 가능 여부 */
-  const thresh   = (S.vset / PHY.K_e) * (PHY.r / PHY.G_r) * 3.6;
+  const thresh    = (S.vset/PHY.K_e)*(PHY.r/PHY.G_r)*3.6;
   const canCharge = S.v0 >= thresh;
   const el        = document.getElementById('charge-status');
   if (canCharge) {
-    el.textContent        = `✅ 충전 가능 (임계 ${thresh.toFixed(0)} km/h 이하)`;
-    el.style.background   = 'rgba(0,230,118,0.10)';
-    el.style.color        = '#00e676';
-    el.style.border       = '1px solid rgba(0,230,118,0.30)';
+    el.textContent='✅ 충전 가능 (임계 '+thresh.toFixed(0)+' km/h 이하)';
+    el.style.cssText='background:rgba(0,230,118,0.10);color:#00e676;border:1px solid rgba(0,230,118,0.30);padding:9px 12px;border-radius:8px;font-size:0.73rem;font-weight:600;text-align:center;';
   } else {
-    el.textContent        = `❌ 충전 불가 (임계 ${thresh.toFixed(0)} km/h 필요)`;
-    el.style.background   = 'rgba(255,82,82,0.10)';
-    el.style.color        = '#ff5252';
-    el.style.border       = '1px solid rgba(255,82,82,0.30)';
+    el.textContent='❌ 충전 불가 (임계 '+thresh.toFixed(0)+' km/h 필요)';
+    el.style.cssText='background:rgba(255,82,82,0.10);color:#ff5252;border:1px solid rgba(255,82,82,0.30);padding:9px 12px;border-radius:8px;font-size:0.73rem;font-weight:600;text-align:center;';
   }
 }
 
-function setText(id, val) {
-  const el = document.getElementById(id);
-  if (el) el.textContent = val;
-}
-function setBar(barId, pct, numId, val, color) {
-  const bar = document.getElementById(barId);
-  const num = document.getElementById(numId);
-  if (bar) { bar.style.width = Math.max(0, Math.min(100, pct)).toFixed(1) + '%'; bar.style.background = color; }
-  if (num) { num.textContent = val.toFixed(2) + ' Wh'; num.style.color = color; }
+function setText(id, v) { const e=document.getElementById(id); if(e) e.textContent=v; }
+function setBar(bid,pct,nid,val,col){
+  const b=document.getElementById(bid), n=document.getElementById(nid);
+  if(b){b.style.width=Math.max(0,Math.min(100,pct)).toFixed(1)+'%';b.style.background=col;}
+  if(n){n.textContent=val.toFixed(2)+' Wh';n.style.color=col;}
 }
 
 /* ══════════════════════════════════════
-   HELPER — roundRect
+   HELPER
 ══════════════════════════════════════ */
-function rr(ctx, x, y, w, h, r) {
+function rr(ctx,x,y,w,h,r){
   ctx.beginPath();
-  ctx.moveTo(x + r, y);
-  ctx.lineTo(x + w - r, y);
-  ctx.quadraticCurveTo(x + w, y,     x + w, y + r);
-  ctx.lineTo(x + w, y + h - r);
-  ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
-  ctx.lineTo(x + r, y + h);
-  ctx.quadraticCurveTo(x,     y + h, x, y + h - r);
-  ctx.lineTo(x, y + r);
-  ctx.quadraticCurveTo(x,     y,     x + r, y);
+  ctx.moveTo(x+r,y); ctx.lineTo(x+w-r,y); ctx.quadraticCurveTo(x+w,y,x+w,y+r);
+  ctx.lineTo(x+w,y+h-r); ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h);
+  ctx.lineTo(x+r,y+h); ctx.quadraticCurveTo(x,y+h,x,y+h-r);
+  ctx.lineTo(x,y+r); ctx.quadraticCurveTo(x,y,x+r,y);
   ctx.closePath();
 }
 
@@ -1092,73 +915,42 @@ function rr(ctx, x, y, w, h, r) {
    SLIDERS
 ══════════════════════════════════════ */
 function bindSliders() {
-  const sliders = [
-    {
-      id: 'sl-v0', key: 'v0', badgeId: 'v0-val', hintId: 'hint-v0',
-      fmt: v => v + ' km/h',
-      toVal: v => v,
-      hint: v => {
-        const emf = vmaxEmf(v / 3.6);
-        return v >= 80 ? `고속: V_emf=${emf.toFixed(0)}V → 높은 회생 에너지`
-             : v >= 40 ? `중속: V_emf=${emf.toFixed(0)}V → 적정 회생 구간`
-             : `저속: V_emf=${emf.toFixed(0)}V → 회생 효율 낮음`;
-      }
+  [
+    { id:'sl-v0',   key:'v0',   bid:'v0-val',   hid:'hint-v0',
+      fmt:v=>v+' km/h', toV:v=>+v,
+      hint:v=>{ const e=vmaxEmf(v/3.6); return v>=80?`고속: V_emf=${e.toFixed(0)}V → 높은 회생 에너지`:v>=40?`중속: V_emf=${e.toFixed(0)}V → 적정 회생 구간`:`저속: V_emf=${e.toFixed(0)}V → 회생 효율 낮음`; }
     },
-    {
-      id: 'sl-mass', key: 'mass', badgeId: 'mass-val', hintId: 'hint-mass',
-      fmt: v => v + ' kg',
-      toVal: v => v,
-      hint: v => `m=${v}kg → KE = ½ × ${v} × v²`,
+    { id:'sl-mass', key:'mass', bid:'mass-val', hid:'hint-mass',
+      fmt:v=>v+' kg', toV:v=>+v, hint:v=>`m=${v}kg → KE = ½ × ${v} × v²` },
+    { id:'sl-vset', key:'vset', bid:'vset-val', hid:'hint-vset',
+      fmt:v=>v+' V', toV:v=>+v,
+      hint:v=>{ const t=(v/PHY.K_e)*(PHY.r/PHY.G_r)*3.6; return `임계속도 ${t.toFixed(0)} km/h 이상 필요`; }
     },
-    {
-      id: 'sl-vset', key: 'vset', badgeId: 'vset-val', hintId: 'hint-vset',
-      fmt: v => v + ' V',
-      toVal: v => v,
-      hint: v => {
-        const thresh = (v / PHY.K_e) * (PHY.r / PHY.G_r) * 3.6;
-        return `임계속도 ${thresh.toFixed(0)} km/h 이상 필요`;
-      },
-    },
-    {
-      id: 'sl-res', key: 'res', badgeId: 'res-val', hintId: 'hint-res',
-      fmt: v => (v / 100).toFixed(2) + ' Ω',
-      toVal: v => v / 100,
-      hint: v => `R=${(v/100).toFixed(2)}Ω → 동손 증가 → 효율 감소`,
-    },
-  ];
-
-  sliders.forEach(cfg => {
+    { id:'sl-res',  key:'res',  bid:'res-val',  hid:'hint-res',
+      fmt:v=>(v/100).toFixed(2)+' Ω', toV:v=>v/100, hint:v=>`R=${(v/100).toFixed(2)}Ω → 동손 증가 → 효율 감소` },
+  ].forEach(cfg => {
     const el = document.getElementById(cfg.id);
     el.addEventListener('input', () => {
       const raw = parseFloat(el.value);
-      S[cfg.key] = cfg.toVal(raw);
-      document.getElementById(cfg.badgeId).textContent = cfg.fmt(raw);
-      document.getElementById(cfg.hintId).textContent  = cfg.hint(raw);
-      /* 시뮬 중이 아닐 때만 정적 렌더 */
+      S[cfg.key] = cfg.toV(raw);
+      document.getElementById(cfg.bid).textContent = cfg.fmt(raw);
+      document.getElementById(cfg.hid).textContent = cfg.hint(raw);
       if (!sim.running) staticDraw();
-      else updateUI(calcAll()); // 시뮬 중엔 KPI만 갱신
+      else updateUI(calcAll());
     });
   });
 }
 
 /* ══════════════════════════════════════
-   CLICK → 시뮬 시작
+   EVENTS & INIT
 ══════════════════════════════════════ */
-document.getElementById('scene-wrap').addEventListener('click', () => {
-  startSim();
-});
+document.getElementById('scene-wrap').addEventListener('click', startSim);
 
-/* ══════════════════════════════════════
-   RESIZE
-══════════════════════════════════════ */
 window.addEventListener('resize', () => {
   resizeCanvas();
   if (!sim.running) staticDraw();
 });
 
-/* ══════════════════════════════════════
-   INIT
-══════════════════════════════════════ */
 window.addEventListener('DOMContentLoaded', () => {
   resizeCanvas();
   bindSliders();
