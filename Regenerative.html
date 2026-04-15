@@ -20,84 +20,45 @@
 }
 html, body {
   font-family: 'Segoe UI', 'Malgun Gothic', sans-serif;
-  background: var(--bg);
-  color: var(--text);
-  height: 100vh;
-  overflow: hidden;
+  background: var(--bg); color: var(--text);
+  height: 100vh; overflow: hidden;
 }
 .app { display: grid; grid-template-rows: 52px 1fr; height: 100vh; }
 .header {
-  background: var(--bg2);
-  border-bottom: 1px solid var(--border);
-  display: flex; align-items: center;
-  padding: 0 24px; gap: 16px;
+  background: var(--bg2); border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; padding: 0 24px; gap: 16px;
 }
 .header-title { font-size: 0.9rem; font-weight: 700; color: var(--green); }
 .header-sub   { font-size: 0.72rem; color: var(--muted); }
 .body { display: grid; grid-template-columns: 260px 1fr 220px; overflow: hidden; }
 
 .left {
-  background: var(--bg2);
-  border-right: 1px solid var(--border);
-  padding: 20px 16px;
-  display: flex; flex-direction: column; gap: 18px;
-  overflow-y: auto;
+  background: var(--bg2); border-right: 1px solid var(--border);
+  padding: 20px 16px; display: flex; flex-direction: column; gap: 18px; overflow-y: auto;
 }
-.panel-label {
-  font-size: 0.62rem; font-weight: 700;
-  letter-spacing: 1.5px; text-transform: uppercase;
-  color: var(--muted); margin-bottom: 10px;
-}
+.panel-label { font-size: 0.62rem; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: var(--muted); margin-bottom: 10px; }
 .pill { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 0.62rem; font-weight: 700; }
 .pill-ind  { background: rgba(68,138,255,0.15); color: var(--blue);  border: 1px solid rgba(68,138,255,0.3); }
-.pill-ctrl { background: rgba(179,136,255,0.12); color: #b388ff;     border: 1px solid rgba(179,136,255,0.25); }
-
+.pill-ctrl { background: rgba(179,136,255,0.12); color: #b388ff; border: 1px solid rgba(179,136,255,0.25); }
 .sl-block { display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px; }
 .sl-row   { display: flex; justify-content: space-between; align-items: center; }
 .sl-name  { font-size: 0.78rem; color: var(--text); }
-.sl-val   {
-  font-size: 0.8rem; font-weight: 700;
-  padding: 2px 10px; border-radius: 20px;
-  background: var(--bg3); border: 1px solid var(--border);
-  min-width: 72px; text-align: center;
-}
-input[type=range] {
-  -webkit-appearance: none; appearance: none;
-  width: 100%; height: 3px; border-radius: 2px;
-  background: var(--border); outline: none; cursor: pointer;
-}
-input[type=range].blue::-webkit-slider-thumb {
-  -webkit-appearance: none; width: 16px; height: 16px;
-  border-radius: 50%; background: var(--blue); cursor: pointer;
-  box-shadow: 0 0 8px rgba(68,138,255,0.6);
-}
-input[type=range].purple::-webkit-slider-thumb {
-  -webkit-appearance: none; width: 14px; height: 14px;
-  border-radius: 50%; background: #b388ff; cursor: pointer;
-}
+.sl-val   { font-size: 0.8rem; font-weight: 700; padding: 2px 10px; border-radius: 20px; background: var(--bg3); border: 1px solid var(--border); min-width: 72px; text-align: center; }
+input[type=range] { -webkit-appearance: none; appearance: none; width: 100%; height: 3px; border-radius: 2px; background: var(--border); outline: none; cursor: pointer; }
+input[type=range].blue::-webkit-slider-thumb   { -webkit-appearance:none; width:16px; height:16px; border-radius:50%; background:var(--blue); cursor:pointer; box-shadow:0 0 8px rgba(68,138,255,0.6); }
+input[type=range].purple::-webkit-slider-thumb { -webkit-appearance:none; width:14px; height:14px; border-radius:50%; background:#b388ff; cursor:pointer; }
 .sl-hint { font-size: 0.67rem; color: var(--muted); line-height: 1.4; min-height: 16px; }
 .divider { height: 1px; background: var(--border); }
-.formula-box {
-  background: var(--bg3); border: 1px solid var(--border);
-  border-left: 3px solid var(--green); border-radius: 8px;
-  padding: 10px 12px; font-size: 0.68rem; line-height: 1.9;
-  color: var(--muted); font-family: 'Courier New', monospace;
-}
+.formula-box { background: var(--bg3); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 8px; padding: 10px 12px; font-size: 0.68rem; line-height: 1.9; color: var(--muted); font-family: 'Courier New', monospace; }
 .formula-box .g { color: var(--green); font-weight: 700; }
 .formula-box .b { color: var(--blue); }
 .formula-box .y { color: var(--yellow); }
 
-.center {
-  display: flex; flex-direction: column;
-  align-items: center; padding: 16px; gap: 12px; overflow: hidden;
-}
+.center { display: flex; flex-direction: column; align-items: center; padding: 16px; gap: 12px; overflow: hidden; }
 .scene-wrap { position: relative; width: 100%; flex: 1; min-height: 0; cursor: pointer; }
 #scene { width: 100%; height: 100%; display: block; border-radius: 14px; }
-.click-hint {
-  position: absolute; bottom: 14px; left: 50%; transform: translateX(-50%);
-  font-size: 0.75rem; color: rgba(0,230,118,0.6);
-  pointer-events: none; transition: opacity 0.4s; white-space: nowrap;
-}
+.click-hint { position: absolute; bottom: 14px; left: 50%; transform: translateX(-50%); font-size: 0.75rem; color: rgba(0,230,118,0.6); pointer-events: none; transition: opacity 0.4s; white-space: nowrap; }
+
 .energy-section { width: 100%; display: flex; flex-direction: column; gap: 7px; }
 .flow-row { display: flex; align-items: center; gap: 10px; }
 .flow-lbl { width: 110px; font-size: 0.67rem; color: var(--muted); text-align: right; flex-shrink: 0; }
@@ -105,15 +66,12 @@ input[type=range].purple::-webkit-slider-thumb {
 .flow-fill  { height: 100%; border-radius: 4px; transition: width 0.25s ease; }
 .flow-num   { width: 62px; font-size: 0.69rem; font-weight: 700; text-align: right; flex-shrink: 0; }
 
-.right {
-  background: var(--bg2); border-left: 1px solid var(--border);
-  padding: 20px 16px; display: flex; flex-direction: column; gap: 12px; overflow-y: auto;
-}
+.right { background: var(--bg2); border-left: 1px solid var(--border); padding: 20px 16px; display: flex; flex-direction: column; gap: 12px; overflow-y: auto; }
 .kpi { background: var(--bg3); border: 1px solid var(--border); border-radius: 10px; padding: 11px 13px; }
 .kpi-label { font-size: 0.62rem; color: var(--muted); margin-bottom: 5px; line-height: 1.3; }
 .kpi-val   { font-size: 1.28rem; font-weight: 800; line-height: 1; }
 .kpi-unit  { font-size: 0.62rem; color: var(--muted); margin-top: 3px; }
-#charge-status { padding: 9px 12px; border-radius: 8px; font-size: 0.71rem; font-weight: 600; text-align: center; transition: all 0.3s; line-height: 1.5; }
+#charge-status { padding: 9px 12px; border-radius: 8px; font-size: 0.71rem; font-weight: 600; text-align: center; line-height: 1.5; }
 
 ::-webkit-scrollbar { width: 4px; }
 ::-webkit-scrollbar-track { background: transparent; }
@@ -129,7 +87,6 @@ input[type=range].purple::-webkit-slider-thumb {
 </header>
 
 <div class="body">
-
   <aside class="left">
     <div>
       <div class="panel-label"><span class="pill pill-ind">01 독립변인</span></div>
@@ -142,12 +99,9 @@ input[type=range].purple::-webkit-slider-thumb {
         <div class="sl-hint" id="hint-v0">V_emf=27.8V | V_set=20V → 충전 가능 ✅</div>
       </div>
     </div>
-
     <div class="divider"></div>
-
     <div>
       <div class="panel-label"><span class="pill pill-ctrl">03 통제변인</span></div>
-
       <div class="sl-block">
         <div class="sl-row">
           <span class="sl-name">차량 질량 m</span>
@@ -156,7 +110,6 @@ input[type=range].purple::-webkit-slider-thumb {
         <input type="range" class="purple" id="sl-mass" min="1000" max="3000" value="1800" step="100">
         <div class="sl-hint" id="hint-mass">질량 고정 → 에너지는 속도만으로 결정</div>
       </div>
-
       <div class="sl-block">
         <div class="sl-row">
           <span class="sl-name">기준 전압 V<sub>set</sub></span>
@@ -165,7 +118,6 @@ input[type=range].purple::-webkit-slider-thumb {
         <input type="range" class="purple" id="sl-vset" min="5" max="50" value="20" step="1">
         <div class="sl-hint" id="hint-vset">V_emf > V_set 이어야 충전 가능</div>
       </div>
-
       <div class="sl-block">
         <div class="sl-row">
           <span class="sl-name">회로 저항 R</span>
@@ -175,18 +127,15 @@ input[type=range].purple::-webkit-slider-thumb {
         <div class="sl-hint" id="hint-res">저항↑ → 동손↑ → 효율↓</div>
       </div>
     </div>
-
     <div class="divider"></div>
-
     <div class="formula-box">
-      <div class="g">η 실시간 계산 방식</div>
+      <div class="g">η 실시간 계산</div>
       <div>I = <span class="b">(V_emf − V_set) / R</span></div>
+      <div>P_out = <span class="b">V_set × I</span></div>
       <div>P_in &nbsp;= <span class="b">V_emf × I</span></div>
-      <div>P_out = <span class="b">V_set &nbsp;× I</span></div>
-      <div>η &nbsp;&nbsp;&nbsp;= <span class="g">P_out / P_in × 100</span></div>
+      <div>η = <span class="g">P_out / P_in × 100</span></div>
       <div style="margin-top:4px;font-size:0.62rem;color:#444466">
-        R↑ → I↓ → 동손 비율↑ → <span class="y">η↓</span><br>
-        V_set↑ → 전압차↓ → I↓ → <span class="y">η↑</span>
+        R↑ → 동손↑ → <span class="y">η↓</span> &nbsp;|&nbsp; V_set↑ → <span class="y">η↑</span>
       </div>
     </div>
   </aside>
@@ -196,7 +145,6 @@ input[type=range].purple::-webkit-slider-thumb {
       <canvas id="scene"></canvas>
       <div class="click-hint" id="click-hint">▶ 클릭하여 시뮬레이션 시작</div>
     </div>
-
     <div class="energy-section">
       <div style="font-size:0.63rem;color:var(--muted);letter-spacing:1px;text-transform:uppercase;margin-bottom:1px">에너지 흐름</div>
       <div class="flow-row">
@@ -226,7 +174,6 @@ input[type=range].purple::-webkit-slider-thumb {
     <div style="font-size:0.62rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted)">
       <span class="pill" style="background:rgba(0,230,118,0.12);color:var(--green);border:1px solid rgba(0,230,118,0.25)">02 종속변인</span>
     </div>
-
     <div class="kpi">
       <div class="kpi-label">회생 에너지 E_stored</div>
       <div class="kpi-val" id="kpi-e" style="color:var(--green)">—</div>
@@ -240,11 +187,9 @@ input[type=range].purple::-webkit-slider-thumb {
     <div class="kpi">
       <div class="kpi-label">에너지 회수 효율 η</div>
       <div class="kpi-val" id="kpi-eta" style="color:var(--yellow)">—</div>
-      <div class="kpi-unit">% (V_set/V_emf 기반)</div>
+      <div class="kpi-unit">% (V_set / V_emf 기반)</div>
     </div>
-
     <div class="divider"></div>
-
     <div class="kpi">
       <div class="kpi-label">총 운동에너지 KE</div>
       <div class="kpi-val" id="kpi-ke" style="color:var(--muted);font-size:1rem">—</div>
@@ -260,95 +205,47 @@ input[type=range].purple::-webkit-slider-thumb {
       <div class="kpi-val" id="kpi-cur" style="color:var(--muted);font-size:1rem">—</div>
       <div class="kpi-unit">A (실시간)</div>
     </div>
-
     <div class="divider"></div>
     <div id="charge-status">—</div>
   </aside>
-
 </div>
 </div>
 
 <script>
-/* ══════════════════════════════════════
-   PHYSICS CONSTANTS
-══════════════════════════════════════ */
-const PHY = {
-  K_e: 0.048,   // V·s/rad  역기전력 상수
-  G_r: 8.2,     // 감속비
-  r:   0.316,   // 타이어 반경 m
-};
+/* ══════ PHYSICS ══════ */
+const PHY = { K_e:0.048, G_r:8.2, r:0.316 };
+const TIME_SCALE = 3.0;
 
-const TIME_SCALE = 3.0;   // 시각 재생 배속
-const BAT_CAP_WH = 200;   // 시각화용 배터리 용량 Wh
-
-/* ══════════════════════════════════════
-   SLIDER STATE
-══════════════════════════════════════ */
-const S = { v0: 80, mass: 1800, vset: 20, res: 0.15 };
-
-/* ══════════════════════════════════════
-   PHYSICS HELPERS
-══════════════════════════════════════ */
-
-/* 속도(m/s) → 유도 기전력(V) */
-function calcEmf(v_ms) {
-  return PHY.K_e * (v_ms * PHY.G_r / PHY.r);
+/* 시각화용 배터리 용량:
+   회생으로 회수 가능한 최대 에너지(120km/h 기준 KE)를
+   기준으로 삼아 0→100% 가 자연스럽게 채워지도록 설정 */
+function maxRegenWh() {
+  // 120km/h, 1800kg 기준 KE = 가장 큰 시나리오
+  return 0.5 * S.mass * (120/3.6) * (120/3.6) / 3600;
 }
 
-/* 초기 속도 기준 최대 V_emf */
-function calcVmax() {
-  return calcEmf(S.v0 / 3.6);
-}
+const S = { v0:80, mass:1800, vset:20, res:0.15 };
 
-/* 총 운동에너지 Wh */
-function calcKE() {
-  const v_ms = S.v0 / 3.6;
-  return 0.5 * S.mass * v_ms * v_ms / 3600;
-}
+/* ══════ PHYSICS HELPERS ══════ */
+function calcEmf(v_ms)  { return PHY.K_e * (v_ms * PHY.G_r / PHY.r); }
+function calcVmax()     { return calcEmf(S.v0 / 3.6); }
+function calcKE()       { const v=S.v0/3.6; return 0.5*S.mass*v*v/3600; }
+function canCharge()    { return calcVmax() > S.vset; }
 
-/* 충전 가능 여부 */
-function canCharge() {
-  return calcVmax() > S.vset;
-}
-
-/*
- * ── η 실시간 계산 ──
- * 회로 모델: V_emf → R(동손) → V_set(배터리)
- *   I       = (V_emf - V_set) / R
- *   P_in    = V_emf × I          (모터가 생성하는 전력)
- *   P_out   = V_set  × I         (배터리로 들어가는 전력)
- *   η_elec  = P_out / P_in       = V_set / V_emf
- *
- * → R이 커지면 I가 작아지지만 η_elec 자체는 V_set/V_emf 비율
- *   그러나 I²R 동손이 커지므로 실질 에너지 회수량이 줄어듦
- *   이를 반영하기 위해 η_total = η_elec × (1 - I²R / P_in) 로 계산
- *
- * v_ms: 현재 속도(m/s). 기본값 = 초기 속도
- */
-function calcEta(v_ms) {
-  if (v_ms === undefined) v_ms = S.v0 / 3.6;
-  const emf = calcEmf(v_ms);
-  if (emf <= S.vset) return 0;                       // 충전 불가
-
-  const I       = (emf - S.vset) / S.res;            // 전류 A
-  const P_in    = emf   * I;                         // 입력 전력 W
-  const P_joule = I * I * S.res;                     // 동손 W
-  const P_out   = S.vset * I;                        // 출력 전력 W
-
-  // η = 배터리 출력 / 모터 입력
-  const eta = P_in > 0 ? (P_out / P_in) * 100 : 0;
-  return Math.min(100, Math.max(0, eta));
-}
-
-/* 전류 */
 function calcI(v_ms) {
-  if (v_ms === undefined) v_ms = S.v0 / 3.6;
+  const emf = calcEmf(v_ms);
+  return emf > S.vset ? (emf - S.vset) / S.res : 0;
+}
+
+function calcEta(v_ms) {
   const emf = calcEmf(v_ms);
   if (emf <= S.vset) return 0;
-  return (emf - S.vset) / S.res;
+  const I     = (emf - S.vset) / S.res;
+  const P_in  = emf   * I;
+  const P_out = S.vset * I;
+  return P_in > 0 ? Math.min(100, (P_out / P_in) * 100) : 0;
 }
 
-/* 전체 계산 묶음 */
 function calcAll(v_ms) {
   if (v_ms === undefined) v_ms = S.v0 / 3.6;
   const KE   = calcKE();
@@ -356,62 +253,39 @@ function calcAll(v_ms) {
   const emf  = calcEmf(v_ms);
   const I    = calcI(v_ms);
   const eta  = calcEta(v_ms);
-  // 배터리 저장 에너지: KE × (η/100) (초기 속도 기준 전체 추정)
   const E    = canCharge() ? KE * (calcEta(S.v0/3.6) / 100) : 0;
-  const loss = KE - E;
-  return { KE, Vmax, emf, I, eta, E, loss };
+  return { KE, Vmax, emf, I, eta, E, loss: KE - E };
 }
 
-/* ══════════════════════════════════════
-   CANVAS
-══════════════════════════════════════ */
+/* ══════ CANVAS ══════ */
 const canvas = document.getElementById('scene');
 const ctx    = canvas.getContext('2d');
-
 function resizeCanvas() {
-  const wrap = document.getElementById('scene-wrap');
-  canvas.width  = wrap.clientWidth;
-  canvas.height = wrap.clientHeight;
+  const w = document.getElementById('scene-wrap');
+  canvas.width = w.clientWidth; canvas.height = w.clientHeight;
 }
 
-/* ══════════════════════════════════════
-   SIMULATION STATE
-══════════════════════════════════════ */
+/* ══════ SIM STATE ══════ */
 const sim = {
-  running:    false,
-  rafId:      null,
-  lastTime:   null,
-  _stopTimer: null,
-
-  v:          0,
-  v0:         0,
-  a_dec:      0,
-
-  soc:        0.60,
-  socStart:   0.60,
-  E_acc:      0,
-
-  wheelAngle: 0,
-  dashOffset: 0,
-  particles:  [],
-  bolts:      [],
+  running:false, rafId:null, lastTime:null, _stopTimer:null,
+  v:0, v0:0, a_dec:0,
+  /* 회생 에너지 누적 (Wh) — 0에서 시작 */
+  regenWh: 0,
+  wheelAngle:0, dashOffset:0,
+  particles:[], bolts:[],
 };
 
-/* ══════════════════════════════════════
-   START / STOP
-══════════════════════════════════════ */
+/* ══════ START / STOP ══════ */
 function startSim() {
-  if (sim.rafId      !== null) { cancelAnimationFrame(sim.rafId); sim.rafId = null; }
-  if (sim._stopTimer !== null) { clearTimeout(sim._stopTimer);    sim._stopTimer = null; }
+  if (sim.rafId      !== null) { cancelAnimationFrame(sim.rafId); sim.rafId=null; }
+  if (sim._stopTimer !== null) { clearTimeout(sim._stopTimer);    sim._stopTimer=null; }
 
   sim.running    = true;
   sim.lastTime   = null;
   sim.v0         = S.v0 / 3.6;
   sim.v          = sim.v0;
   sim.a_dec      = 4.9 * TIME_SCALE;
-  sim.E_acc      = 0;
-  sim.socStart   = 0.60;
-  sim.soc        = 0.60;
+  sim.regenWh    = 0;   // ← 항상 0에서 시작
   sim.wheelAngle = 0;
   sim.dashOffset = 0;
   sim.particles  = [];
@@ -423,35 +297,31 @@ function startSim() {
 
 function stopSim() {
   sim.running = false;
-  if (sim.rafId !== null) { cancelAnimationFrame(sim.rafId); sim.rafId = null; }
-  const hint = document.getElementById('click-hint');
-  hint.textContent   = '▶ 클릭하여 다시 시작';
-  hint.style.opacity = '1';
+  if (sim.rafId !== null) { cancelAnimationFrame(sim.rafId); sim.rafId=null; }
+  const h = document.getElementById('click-hint');
+  h.textContent = '▶ 클릭하여 다시 시작';
+  h.style.opacity = '1';
 }
 
-/* ══════════════════════════════════════
-   RAF LOOP
-══════════════════════════════════════ */
+/* ══════ RAF LOOP ══════ */
 function rafLoop(timestamp) {
   if (!sim.running) return;
 
   if (sim.lastTime === null) sim.lastTime = timestamp;
-  const dt     = Math.min((timestamp - sim.lastTime) / 1000, 0.05);
+  const dt = Math.min((timestamp - sim.lastTime) / 1000, 0.05);
   sim.lastTime = timestamp;
 
   if (sim.v > 0.05) {
     sim.v = Math.max(0, sim.v - sim.a_dec * dt);
-
     sim.wheelAngle += (sim.v / PHY.r) * dt;
     sim.dashOffset  = (sim.dashOffset + sim.v * dt * 50) % 80;
 
-    /* 에너지 적산 — 현재 속도 기준 η 사용 */
-    if (sim.v > 0 && calcEmf(sim.v) > S.vset) {
+    /* 에너지 적산 */
+    if (calcEmf(sim.v) > S.vset) {
       const dt_phys = dt / TIME_SCALE;
       const I       = calcI(sim.v);
-      const P_out   = S.vset * I;           // 배터리 입력 전력 W
-      sim.E_acc    += P_out * dt_phys / 3600;
-      sim.soc       = Math.min(0.99, sim.socStart + sim.E_acc / BAT_CAP_WH);
+      const P_out   = S.vset * I;        // 배터리로 들어가는 전력 W
+      sim.regenWh  += P_out * dt_phys / 3600;
     }
 
     /* 파티클 */
@@ -459,19 +329,15 @@ function rafLoop(timestamp) {
       const W=canvas.width, H=canvas.height;
       const roadY=H*0.60, carCX=W*0.42, carY=roadY-H*0.16;
       const ratio=sim.v/sim.v0;
-      if (Math.random() < ratio*0.45) {
-        sim.particles.push({ x:carCX+(Math.random()-.5)*55, y:carY+(Math.random()-.5)*28,
-          vx:(Math.random()-.5)*2.2, vy:-Math.random()*3.2-.4, life:1, size:Math.random()*3+1.5 });
-      }
-      if (Math.random() < ratio*0.12) {
-        sim.bolts.push({ x1:carCX+55, y1:carY, x2:carCX+75+Math.random()*20, y2:carY-10+Math.random()*20, life:1 });
-      }
+      if (Math.random()<ratio*0.45)
+        sim.particles.push({x:carCX+(Math.random()-.5)*55,y:carY+(Math.random()-.5)*28,vx:(Math.random()-.5)*2.2,vy:-Math.random()*3.2-.4,life:1,size:Math.random()*3+1.5});
+      if (Math.random()<ratio*0.12)
+        sim.bolts.push({x1:carCX+55,y1:carY,x2:carCX+75+Math.random()*20,y2:carY-10+Math.random()*20,life:1});
     }
   } else {
     sim.v = 0;
-    if (sim._stopTimer === null) {
-      sim._stopTimer = setTimeout(() => { sim._stopTimer=null; stopSim(); }, 500);
-    }
+    if (sim._stopTimer === null)
+      sim._stopTimer = setTimeout(()=>{ sim._stopTimer=null; stopSim(); }, 500);
   }
 
   sim.particles = sim.particles.filter(p=>p.life>0.02);
@@ -479,39 +345,27 @@ function rafLoop(timestamp) {
   sim.bolts = sim.bolts.filter(b=>b.life>0.05);
   sim.bolts.forEach(b=>{ b.life-=0.18; });
 
-  drawScene();
-  updateUI();
+  drawScene(); updateUI();
   sim.rafId = requestAnimationFrame(rafLoop);
 }
 
-/* ══════════════════════════════════════
-   STATIC DRAW
-══════════════════════════════════════ */
+/* ══════ STATIC DRAW ══════ */
 function staticDraw() {
-  sim.v     = S.v0 / 3.6;
-  sim.soc   = 0.60;
-  sim.E_acc = 0;
-  drawScene();
-  updateUI();
+  sim.v=S.v0/3.6; sim.regenWh=0;
+  drawScene(); updateUI();
 }
 
-/* ══════════════════════════════════════
-   SCENE
-══════════════════════════════════════ */
+/* ══════ SCENE ══════ */
 function drawScene() {
   const W=canvas.width, H=canvas.height;
   if (!W||!H) return;
   ctx.clearRect(0,0,W,H);
   const roadY=H*0.60;
-  drawSky(W,H);
-  drawMountains(W,roadY);
-  drawBuildings(W,roadY);
-  drawRoad(W,H,roadY);
-  drawCar(W,H,roadY);
-  drawParticles();
-  drawBolts();
+  drawSky(W,H); drawMountains(W,roadY); drawBuildings(W,roadY);
+  drawRoad(W,H,roadY); drawCar(W,H,roadY);
+  drawParticles(); drawBolts();
   drawSpeedGauge(H);
-  drawBattery(W,H);
+  drawRegenGauge(W,H);   // ← 배터리 대신 회생 게이지
   drawRegenLabel(W,H,roadY);
 }
 
@@ -524,13 +378,11 @@ function drawSky(W,H){
     ctx.beginPath(); ctx.arc(fx*W,fy*H,1.2,0,Math.PI*2); ctx.fill();
   });
 }
-
 function drawMountains(W,roadY){
   ctx.fillStyle='#0c0c18'; ctx.beginPath(); ctx.moveTo(0,roadY);
   [[0,.80],[.10,.60],[.20,.74],[.32,.50],[.44,.68],[.56,.46],[.68,.66],[.80,.44],[.91,.63],[1,.72]].forEach(([fx,fy])=>ctx.lineTo(W*fx,roadY*fy));
   ctx.lineTo(W,roadY); ctx.closePath(); ctx.fill();
 }
-
 function drawBuildings(W,roadY){
   [[.02,.30,.05,.50],[.08,.22,.045,.50],[.14,.36,.038,.50],
    [.65,.26,.05,.50],[.72,.17,.046,.50],[.79,.33,.06,.50],[.88,.24,.046,.50],[.94,.38,.05,.50]
@@ -545,7 +397,6 @@ function drawBuildings(W,roadY){
     }
   });
 }
-
 function drawRoad(W,H,roadY){
   const g=ctx.createLinearGradient(0,roadY,0,H);
   g.addColorStop(0,'#18182a'); g.addColorStop(1,'#0c0c16');
@@ -558,11 +409,10 @@ function drawRoad(W,H,roadY){
   ctx.beginPath(); ctx.moveTo(0,roadY+(H-roadY)*.5); ctx.lineTo(W,roadY+(H-roadY)*.5); ctx.stroke();
   ctx.setLineDash([]); ctx.restore();
 }
-
 function drawCar(W,H,roadY){
-  const carW=Math.min(W*0.24,200), carH=carW*0.44;
-  const carCX=W*0.42, carY=roadY-carH*0.65;
-  const charging = canCharge() && sim.running && sim.v>0.2;
+  const carW=Math.min(W*0.24,200),carH=carW*0.44;
+  const carCX=W*0.42,carY=roadY-carH*0.65;
+  const charging=canCharge()&&sim.running&&sim.v>0.2;
 
   ctx.save(); ctx.fillStyle='rgba(0,0,0,0.28)';
   ctx.beginPath(); ctx.ellipse(carCX,roadY+4,carW*.40,carH*.09,0,0,Math.PI*2); ctx.fill(); ctx.restore();
@@ -588,9 +438,9 @@ function drawCar(W,H,roadY){
   ctx.beginPath(); ctx.ellipse(carCX+carW*.46,carY+carH*.44,carW*.036,carH*.068,0,0,Math.PI*2); ctx.fill(); ctx.restore();
 
   ctx.save();
-  ctx.fillStyle   = charging ? '#ff2020' : 'rgba(130,0,0,0.5)';
-  ctx.shadowColor = charging ? '#ff0000' : 'transparent';
-  ctx.shadowBlur  = charging ? 20 : 0;
+  ctx.fillStyle=charging?'#ff2020':'rgba(130,0,0,0.5)';
+  ctx.shadowColor=charging?'#ff0000':'transparent';
+  ctx.shadowBlur=charging?20:0;
   ctx.beginPath(); ctx.ellipse(carCX-carW*.46,carY+carH*.44,carW*.030,carH*.062,0,0,Math.PI*2); ctx.fill(); ctx.restore();
 
   ctx.save();
@@ -601,10 +451,8 @@ function drawCar(W,H,roadY){
 
   drawWheel(carCX+carW*.30,roadY,carH*.23);
   drawWheel(carCX-carW*.26,roadY,carH*.23);
-
-  if (sim.running && sim.v>0.2) drawRegenArc(carCX,carY-carH*.18,carW*.48);
+  if(sim.running&&sim.v>0.2) drawRegenArc(carCX,carY-carH*.18,carW*.48);
 }
-
 function drawWheel(cx,cy,r){
   ctx.save();
   ctx.fillStyle='#111'; ctx.strokeStyle='#252535'; ctx.lineWidth=2;
@@ -619,25 +467,20 @@ function drawWheel(cx,cy,r){
   ctx.fillStyle='#4a5888'; ctx.beginPath(); ctx.arc(0,0,r*.10,0,Math.PI*2); ctx.fill();
   ctx.restore();
 }
-
 function drawRegenArc(cx,cy,r){
   const eta=calcEta(sim.v);
-  if (eta<=0) return;
-  const frac=sim.v0>0 ? Math.max(0,1-sim.v/sim.v0) : 0;
-
+  if(eta<=0) return;
+  const frac=sim.v0>0?Math.max(0,1-sim.v/sim.v0):0;
   ctx.save();
   ctx.beginPath(); ctx.arc(cx,cy,r,Math.PI,2*Math.PI);
   ctx.strokeStyle='rgba(255,255,255,0.05)'; ctx.lineWidth=5; ctx.lineCap='round'; ctx.stroke();
-
   ctx.beginPath(); ctx.arc(cx,cy,r,Math.PI,Math.PI+frac*Math.PI);
   ctx.strokeStyle='#00e676'; ctx.shadowColor='#00e676'; ctx.shadowBlur=12; ctx.stroke();
-
   ctx.shadowBlur=0; ctx.fillStyle='rgba(0,230,118,0.85)';
   ctx.font='bold 10px monospace'; ctx.textAlign='center';
   ctx.fillText(`η ${eta.toFixed(0)}%`,cx,cy+14);
   ctx.restore();
 }
-
 function drawParticles(){
   sim.particles.forEach(p=>{
     ctx.save(); ctx.globalAlpha=Math.max(0,p.life*.85);
@@ -645,7 +488,6 @@ function drawParticles(){
     ctx.beginPath(); ctx.arc(p.x,p.y,p.size*Math.max(0,p.life),0,Math.PI*2); ctx.fill(); ctx.restore();
   });
 }
-
 function drawBolts(){
   sim.bolts.forEach(b=>{
     ctx.save(); ctx.globalAlpha=Math.max(0,b.life*.65);
@@ -653,18 +495,17 @@ function drawBolts(){
     const pts=[[b.x1,b.y1]];
     for(let i=1;i<5;i++){
       const t=i/5;
-      pts.push([b.x1+(b.x2-b.x1)*t+(Math.random()-.5)*14, b.y1+(b.y2-b.y1)*t+(Math.random()-.5)*10]);
+      pts.push([b.x1+(b.x2-b.x1)*t+(Math.random()-.5)*14,b.y1+(b.y2-b.y1)*t+(Math.random()-.5)*10]);
     }
     pts.push([b.x2,b.y2]);
     ctx.beginPath(); ctx.moveTo(pts[0][0],pts[0][1]);
     pts.slice(1).forEach(p=>ctx.lineTo(p[0],p[1])); ctx.stroke(); ctx.restore();
   });
 }
-
 function drawSpeedGauge(H){
   const cx=48,cy=H*.12,R=34;
-  const sa=Math.PI*.75, ea=Math.PI*2.25;
-  const pct=sim.v0>0 ? Math.min(1,sim.v/sim.v0) : Math.min(1,S.v0/120);
+  const sa=Math.PI*.75,ea=Math.PI*2.25;
+  const pct=sim.v0>0?Math.min(1,sim.v/sim.v0):Math.min(1,S.v0/120);
   ctx.save();
   ctx.fillStyle='rgba(13,13,22,0.78)'; ctx.strokeStyle='rgba(255,255,255,0.04)'; ctx.lineWidth=1;
   ctx.beginPath(); ctx.arc(cx,cy,R+9,0,Math.PI*2); ctx.fill(); ctx.stroke();
@@ -683,39 +524,69 @@ function drawSpeedGauge(H){
   ctx.restore();
 }
 
-function drawBattery(W,H){
-  const bw=28,bh=80,bx=W-60,by=H*.06;
-  const soc=sim.soc;
+/* ══════════════════════════════════════
+   회생 에너지 게이지 (배터리 대체)
+   — 시뮬 전: 0%  /  시뮬 중: 회생된 만큼 채워짐
+   — 기준: 현재 V₀의 운동에너지 KE = 100%
+══════════════════════════════════════ */
+function drawRegenGauge(W, H) {
+  const bw = 28, bh = 80;
+  const bx = W - 60, by = H * 0.06;
+
+  /* 기준 에너지: 현재 설정의 이론적 최대 회수량 */
+  const maxE   = canCharge() ? calcKE() * (calcEta(S.v0/3.6)/100) : calcKE();
+  const pct    = maxE > 0 ? Math.min(1, sim.regenWh / maxE) : 0;
+
+  /* 배경 패널 */
   ctx.save();
-  ctx.fillStyle='rgba(13,13,22,0.78)'; ctx.strokeStyle='rgba(255,255,255,0.04)'; ctx.lineWidth=1;
-  ctx.beginPath(); rr(ctx,bx-12,by-10,bw+24,bh+36,8); ctx.fill(); ctx.stroke();
-  ctx.fillStyle='rgba(255,255,255,0.07)';
-  ctx.beginPath(); rr(ctx,bx+bw*.2,by-5,bw*.6,6,2); ctx.fill();
-  ctx.strokeStyle='rgba(255,255,255,0.09)'; ctx.lineWidth=1.5;
+  ctx.fillStyle='rgba(13,13,22,0.80)'; ctx.strokeStyle='rgba(255,255,255,0.05)'; ctx.lineWidth=1;
+  ctx.beginPath(); rr(ctx,bx-14,by-26,bw+28,bh+52,10); ctx.fill(); ctx.stroke();
+
+  /* 상단 라벨 "회생 에너지" */
+  ctx.fillStyle='rgba(0,230,118,0.55)'; ctx.font='bold 8px sans-serif';
+  ctx.textAlign='center';
+  ctx.fillText('회생',bx+bw/2,by-14);
+  ctx.fillText('에너지',bx+bw/2,by-5);
+
+  /* 배터리 캡 */
+  ctx.fillStyle='rgba(255,255,255,0.08)';
+  ctx.beginPath(); rr(ctx,bx+bw*.2,by-3,bw*.6,5,2); ctx.fill();
+
+  /* 케이스 */
+  ctx.strokeStyle='rgba(255,255,255,0.10)'; ctx.lineWidth=1.5;
   ctx.fillStyle='#0e0e1a';
   ctx.beginPath(); rr(ctx,bx,by,bw,bh,4); ctx.fill(); ctx.stroke();
-  const fillH=bh*Math.min(1,Math.max(0,soc));
-  const fillY=by+bh-fillH;
-  const fg=ctx.createLinearGradient(0,fillY,0,by+bh);
-  if(soc>.75){fg.addColorStop(0,'#00e676');fg.addColorStop(1,'#00c853');}
-  else if(soc>.40){fg.addColorStop(0,'#ffd740');fg.addColorStop(1,'#ff9800');}
-  else{fg.addColorStop(0,'#ff5252');fg.addColorStop(1,'#d32f2f');}
-  ctx.fillStyle=fg; ctx.shadowColor=soc>.60?'#00e676':'#ffd740'; ctx.shadowBlur=7;
-  ctx.beginPath(); rr(ctx,bx+2,fillY,bw-4,fillH,3); ctx.fill();
-  ctx.shadowBlur=0;
-  ctx.fillStyle='#e0e0f0'; ctx.font='bold 10px monospace';
-  ctx.textAlign='center'; ctx.textBaseline='alphabetic';
-  ctx.fillText((soc*100).toFixed(0)+'%',bx+bw/2,by+bh+16);
-  ctx.font='8px sans-serif'; ctx.fillStyle='rgba(170,170,210,0.48)';
-  ctx.fillText('SOC',bx+bw/2,by+bh+27);
+
+  /* 채워지는 레벨 */
+  const fillH = bh * pct;
+  const fillY = by + bh - fillH;
+
+  if (fillH > 0) {
+    const fg = ctx.createLinearGradient(0, fillY, 0, by+bh);
+    fg.addColorStop(0,'#00e676'); fg.addColorStop(1,'#00c853');
+    ctx.fillStyle = fg;
+    ctx.shadowColor = '#00e676'; ctx.shadowBlur = pct>0.1 ? 8 : 0;
+    ctx.beginPath(); rr(ctx,bx+2,fillY,bw-4,fillH,3); ctx.fill();
+  }
+
+  ctx.shadowBlur = 0;
+
+  /* 퍼센트 숫자 */
+  ctx.fillStyle = '#e0e0f0'; ctx.font = 'bold 10px monospace';
+  ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
+  ctx.fillText((pct*100).toFixed(0)+'%', bx+bw/2, by+bh+16);
+
+  /* Wh 수치 */
+  ctx.font = '7.5px monospace'; ctx.fillStyle = 'rgba(0,230,118,0.6)';
+  ctx.fillText(sim.regenWh.toFixed(2)+'Wh', bx+bw/2, by+bh+27);
+
   ctx.restore();
 }
 
 function drawRegenLabel(W,H,roadY){
   if(!sim.running||sim.v<0.3) return;
   const carCX=W*0.42;
-  const emf=calcEmf(sim.v);
-  const eta=calcEta(sim.v);
+  const emf=calcEmf(sim.v), eta=calcEta(sim.v);
   ctx.save(); ctx.textAlign='left';
   ctx.fillStyle='rgba(68,138,255,0.82)'; ctx.font='bold 11px monospace';
   ctx.fillText(`V_emf: ${emf.toFixed(1)} V  η: ${eta.toFixed(0)}%`,carCX+W*.08,roadY-H*.12);
@@ -729,36 +600,32 @@ function drawRegenLabel(W,H,roadY){
   ctx.restore();
 }
 
-/* ══════════════════════════════════════
-   UI UPDATE
-══════════════════════════════════════ */
+/* ══════ UI UPDATE ══════ */
 function updateUI(){
-  /* 현재 속도 기준 η (시뮬 중: 실시간, 정적: 초기속도) */
   const curV  = sim.running ? sim.v : S.v0/3.6;
   const c     = calcAll(curV);
-  const cInit = calcAll(S.v0/3.6); // 초기속도 기준 (E, KPI용)
+  const cInit = calcAll(S.v0/3.6);
 
-  setText('kpi-e',    cInit.E.toFixed(3));
+  setText('kpi-e',    sim.regenWh.toFixed(3));   // 실제 누적 회생량
   setText('kpi-vmax', cInit.Vmax.toFixed(2));
-  setText('kpi-eta',  c.eta.toFixed(1));      // ← 현재 속도 기반 실시간 η
+  setText('kpi-eta',  c.eta.toFixed(1));
   setText('kpi-ke',   cInit.KE.toFixed(3));
   setText('kpi-cemf', c.emf.toFixed(2));
   setText('kpi-cur',  c.I.toFixed(2));
 
-  /* 에너지 흐름 바 */
+  /* 에너지 바 */
   const KE=cInit.KE;
   if(KE>0){
-    const I_init = calcI(S.v0/3.6);
-    const P_in   = cInit.Vmax * I_init;
-    const P_loss = I_init*I_init*S.res;
-    const P_out  = S.vset * I_init;
-    const lossFrac = P_in>0 ? P_loss/P_in : 0;
-    const outFrac  = P_in>0 ? P_out /P_in : 0;
-
-    setBar('bar-ke',   100,               'num-ke',    KE,        '#448aff');
-    setBar('bar-motor',canCharge()?100:0, 'num-motor', canCharge()?KE:0,'#00c9a7');
-    setBar('bar-loss', lossFrac*100,      'num-loss',  KE*lossFrac,'#ff5252');
-    setBar('bar-bat',  outFrac*100,       'num-bat',   KE*outFrac, '#00e676');
+    const I_i  = calcI(S.v0/3.6);
+    const P_in = cInit.Vmax * I_i;
+    const P_ls = I_i*I_i*S.res;
+    const P_ot = S.vset * I_i;
+    const lf   = P_in>0?P_ls/P_in:0;
+    const of_  = P_in>0?P_ot/P_in:0;
+    setBar('bar-ke',   100,           'num-ke',    KE,        '#448aff');
+    setBar('bar-motor',canCharge()?100:0,'num-motor',canCharge()?KE:0,'#00c9a7');
+    setBar('bar-loss', lf*100,        'num-loss',  KE*lf,     '#ff5252');
+    setBar('bar-bat',  of_*100,       'num-bat',   KE*of_,    '#00e676');
   }
 
   /* 충전 가능 여부 */
@@ -776,13 +643,11 @@ function updateUI(){
 function setText(id,v){ const e=document.getElementById(id); if(e) e.textContent=v; }
 function setBar(bid,pct,nid,val,col){
   const b=document.getElementById(bid),n=document.getElementById(nid);
-  if(b){b.style.width=Math.max(0,Math.min(100,pct)).toFixed(1)+'%'; b.style.background=col;}
-  if(n){n.textContent=val.toFixed(3)+' Wh'; n.style.color=col;}
+  if(b){b.style.width=Math.max(0,Math.min(100,pct)).toFixed(1)+'%';b.style.background=col;}
+  if(n){n.textContent=val.toFixed(3)+' Wh';n.style.color=col;}
 }
 
-/* ══════════════════════════════════════
-   HELPER
-══════════════════════════════════════ */
+/* ══════ HELPER ══════ */
 function rr(ctx,x,y,w,h,r){
   ctx.beginPath();
   ctx.moveTo(x+r,y); ctx.lineTo(x+w-r,y); ctx.quadraticCurveTo(x+w,y,x+w,y+r);
@@ -792,27 +657,21 @@ function rr(ctx,x,y,w,h,r){
   ctx.closePath();
 }
 
-/* ══════════════════════════════════════
-   SLIDERS
-══════════════════════════════════════ */
+/* ══════ SLIDERS ══════ */
 function bindSliders(){
   [
-    { id:'sl-v0',   key:'v0',   bid:'v0-val',   hid:'hint-v0',
-      fmt:v=>v+' km/h', toV:v=>+v,
-      hint:v=>{ const e=calcEmf(v/3.6); return `V_emf=${e.toFixed(1)}V | V_set=${S.vset}V → ${e>S.vset?'충전 가능 ✅':'충전 불가 ❌'}`; }
-    },
-    { id:'sl-mass', key:'mass', bid:'mass-val', hid:'hint-mass',
-      fmt:v=>v+' kg', toV:v=>+v,
-      hint:v=>`m=${v}kg → KE = ½×${v}×v²`
-    },
-    { id:'sl-vset', key:'vset', bid:'vset-val', hid:'hint-vset',
-      fmt:v=>v+' V', toV:v=>+v,
-      hint:v=>{ const e=calcEmf(S.v0/3.6); return `V_set=${v}V | V_emf=${e.toFixed(1)}V → ${e>v?'충전 가능 ✅':'충전 불가 ❌'}`; }
-    },
-    { id:'sl-res',  key:'res',  bid:'res-val',  hid:'hint-res',
-      fmt:v=>(v/100).toFixed(2)+' Ω', toV:v=>v/100,
-      hint:v=>{ const eta=calcEta(S.v0/3.6); return `R=${(v/100).toFixed(2)}Ω → η=${eta.toFixed(1)}% (R↑ 동손↑ 효율↓)`; }
-    },
+    {id:'sl-v0',key:'v0',bid:'v0-val',hid:'hint-v0',
+      fmt:v=>v+' km/h',toV:v=>+v,
+      hint:v=>{const e=calcEmf(v/3.6);return `V_emf=${e.toFixed(1)}V | V_set=${S.vset}V → ${e>S.vset?'충전 가능 ✅':'충전 불가 ❌'}`;} },
+    {id:'sl-mass',key:'mass',bid:'mass-val',hid:'hint-mass',
+      fmt:v=>v+' kg',toV:v=>+v,
+      hint:v=>`m=${v}kg → KE = ½×${v}×v²` },
+    {id:'sl-vset',key:'vset',bid:'vset-val',hid:'hint-vset',
+      fmt:v=>v+' V',toV:v=>+v,
+      hint:v=>{const e=calcEmf(S.v0/3.6);return `V_set=${v}V | V_emf=${e.toFixed(1)}V → ${e>v?'충전 가능 ✅':'충전 불가 ❌'}`;} },
+    {id:'sl-res',key:'res',bid:'res-val',hid:'hint-res',
+      fmt:v=>(v/100).toFixed(2)+' Ω',toV:v=>v/100,
+      hint:v=>{const eta=calcEta(S.v0/3.6);return `R=${(v/100).toFixed(2)}Ω → η=${eta.toFixed(1)}% (R↑ 동손↑ 효율↓)`;} },
   ].forEach(cfg=>{
     const el=document.getElementById(cfg.id);
     el.addEventListener('input',()=>{
@@ -820,20 +679,17 @@ function bindSliders(){
       S[cfg.key]=cfg.toV(raw);
       document.getElementById(cfg.bid).textContent=cfg.fmt(raw);
       document.getElementById(cfg.hid).textContent=cfg.hint(raw);
-      if(!sim.running) staticDraw();
-      else updateUI();
+      if(!sim.running) staticDraw(); else updateUI();
     });
   });
 }
 
-/* ══════════════════════════════════════
-   EVENTS & INIT
-══════════════════════════════════════ */
+/* ══════ INIT ══════ */
 document.getElementById('scene-wrap').addEventListener('click', startSim);
 window.addEventListener('resize',()=>{ resizeCanvas(); if(!sim.running) staticDraw(); });
 window.addEventListener('DOMContentLoaded',()=>{
   resizeCanvas(); bindSliders();
-  sim.v=S.v0/3.6; sim.soc=0.60;
+  sim.v=S.v0/3.6; sim.regenWh=0;
   staticDraw(); updateUI();
 });
 </script>
