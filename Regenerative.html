@@ -1,702 +1,723 @@
-<!DOCTYPE html>
-<html lang="ko">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>EV 회생제동 시뮬레이션</title>
-<style>
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-:root {
-  --bg:#0e0e16; --bg2:#15151f; --bg3:#1c1c2a;
-  --border:#252535; --green:#00e676; --blue:#448aff;
-  --red:#ff5252; --yellow:#ffd740; --text:#e0e0f0; --muted:#6b6b90;
-}
-html,body { font-family:'Segoe UI','Malgun Gothic',sans-serif; background:var(--bg); color:var(--text); height:100vh; overflow:hidden; }
-.app { display:grid; grid-template-rows:52px 1fr; height:100vh; }
-.header { background:var(--bg2); border-bottom:1px solid var(--border); display:flex; align-items:center; padding:0 24px; gap:16px; }
-.header-title { font-size:0.9rem; font-weight:700; color:var(--green); }
-.header-sub   { font-size:0.72rem; color:var(--muted); }
-.body { display:grid; grid-template-columns:260px 1fr 220px; overflow:hidden; }
+import { useEffect, useRef } from 'react';
 
-.left { background:var(--bg2); border-right:1px solid var(--border); padding:20px 16px; display:flex; flex-direction:column; gap:18px; overflow-y:auto; }
-.panel-label { font-size:0.62rem; font-weight:700; letter-spacing:1.5px; text-transform:uppercase; color:var(--muted); margin-bottom:10px; }
-.pill { display:inline-block; padding:2px 8px; border-radius:12px; font-size:0.62rem; font-weight:700; }
-.pill-ind  { background:rgba(68,138,255,0.15); color:var(--blue);  border:1px solid rgba(68,138,255,0.3); }
-.pill-ctrl { background:rgba(179,136,255,0.12); color:#b388ff; border:1px solid rgba(179,136,255,0.25); }
-.sl-block { display:flex; flex-direction:column; gap:6px; margin-bottom:12px; }
-.sl-row   { display:flex; justify-content:space-between; align-items:center; }
-.sl-name  { font-size:0.78rem; color:var(--text); }
-.sl-val   { font-size:0.8rem; font-weight:700; padding:2px 10px; border-radius:20px; background:var(--bg3); border:1px solid var(--border); min-width:72px; text-align:center; }
-input[type=range] { -webkit-appearance:none; appearance:none; width:100%; height:3px; border-radius:2px; background:var(--border); outline:none; cursor:pointer; }
-input[type=range].blue::-webkit-slider-thumb   { -webkit-appearance:none; width:16px; height:16px; border-radius:50%; background:var(--blue); cursor:pointer; box-shadow:0 0 8px rgba(68,138,255,0.6); }
-input[type=range].purple::-webkit-slider-thumb { -webkit-appearance:none; width:14px; height:14px; border-radius:50%; background:#b388ff; cursor:pointer; }
-.sl-hint { font-size:0.67rem; color:var(--muted); line-height:1.4; min-height:16px; }
-.divider { height:1px; background:var(--border); }
-.formula-box { background:var(--bg3); border:1px solid var(--border); border-left:3px solid var(--green); border-radius:8px; padding:10px 12px; font-size:0.68rem; line-height:1.9; color:var(--muted); font-family:'Courier New',monospace; }
-.formula-box .g { color:var(--green); font-weight:700; }
-.formula-box .b { color:var(--blue); }
-.formula-box .y { color:var(--yellow); }
+export default function App() {
+  const mountedRef = useRef(false);
 
-.center { display:flex; flex-direction:column; align-items:center; padding:16px; gap:12px; overflow:hidden; }
-.scene-wrap { position:relative; width:100%; flex:1; min-height:0; cursor:pointer; }
-#scene { width:100%; height:100%; display:block; border-radius:14px; }
-.click-hint { position:absolute; bottom:14px; left:50%; transform:translateX(-50%); font-size:0.75rem; color:rgba(0,230,118,0.6); pointer-events:none; transition:opacity 0.4s; white-space:nowrap; }
+  useEffect(() => {
+    if (mountedRef.current) return;
+    mountedRef.current = true;
 
-.energy-section { width:100%; display:flex; flex-direction:column; gap:7px; }
-.flow-row { display:flex; align-items:center; gap:10px; }
-.flow-lbl { width:110px; font-size:0.67rem; color:var(--muted); text-align:right; flex-shrink:0; }
-.flow-track { flex:1; height:13px; background:var(--bg3); border-radius:4px; overflow:hidden; border:1px solid var(--border); }
-.flow-fill  { height:100%; border-radius:4px; transition:width 0.25s ease; }
-.flow-num   { width:62px; font-size:0.69rem; font-weight:700; text-align:right; flex-shrink:0; }
+    /* ═══════════════════════════════════════
+       PHYSICS CONSTANTS (고정값)
+       K_e: 실제 EV 모터 역기전력 상수 (V·s/rad)
+       80km/h 기준 V_emf ≈ K_e × (v × G_r / r)
+                        = 0.80 × (22.22 × 8.2 / 0.316) ≈ 461 V
+       → 실제 400V급 EV 시스템과 정합
+    ═══════════════════════════════════════ */
+    const K_e = 0.80;   // 역기전력 상수 V·s/rad  ← 0.048→0.80 교정
+    const G_r = 8.2;    // 감속비
+    const R_w = 0.316;  // 타이어 반경 m
+    const TIME_SCALE = 3.0;  // 시각 재생 배속
 
-.right { background:var(--bg2); border-left:1px solid var(--border); padding:20px 16px; display:flex; flex-direction:column; gap:12px; overflow-y:auto; }
-.kpi { background:var(--bg3); border:1px solid var(--border); border-radius:10px; padding:11px 13px; }
-.kpi-label { font-size:0.62rem; color:var(--muted); margin-bottom:5px; line-height:1.3; }
-.kpi-val   { font-size:1.28rem; font-weight:800; line-height:1; }
-.kpi-unit  { font-size:0.62rem; color:var(--muted); margin-top:3px; }
-#charge-status { padding:9px 12px; border-radius:8px; font-size:0.71rem; font-weight:600; text-align:center; line-height:1.5; }
-::-webkit-scrollbar { width:4px; }
-::-webkit-scrollbar-thumb { background:var(--border); border-radius:2px; }
-</style>
-</head>
-<body>
-<div class="app">
-<header class="header">
-  <div class="header-title">⚡ EV 회생제동 시뮬레이션</div>
-  <div class="header-sub">초기 속도 → 유도 기전력 → 회생 에너지 실시간 시각화 &nbsp;|&nbsp; 클릭하면 시뮬레이션 시작</div>
-</header>
-<div class="body">
-  <aside class="left">
-    <div>
-      <div class="panel-label"><span class="pill pill-ind">01 독립변인</span></div>
-      <div class="sl-block">
-        <div class="sl-row">
-          <span class="sl-name">초기 속도 V₀</span>
-          <span class="sl-val" id="v0-val" style="color:var(--blue)">80 km/h</span>
-        </div>
-        <input type="range" class="blue" id="sl-v0" min="10" max="120" value="80" step="5">
-        <div class="sl-hint" id="hint-v0"></div>
-      </div>
-    </div>
-    <div class="divider"></div>
-    <div>
-      <div class="panel-label"><span class="pill pill-ctrl">03 통제변인</span></div>
-      <div class="sl-block">
-        <div class="sl-row">
-          <span class="sl-name">차량 질량 m</span>
-          <span class="sl-val" id="mass-val" style="color:#b388ff">1800 kg</span>
-        </div>
-        <input type="range" class="purple" id="sl-mass" min="1000" max="3000" value="1800" step="100">
-        <div class="sl-hint" id="hint-mass">질량 고정 → 에너지는 속도만으로 결정</div>
-      </div>
-      <div class="sl-block">
-        <div class="sl-row">
-          <span class="sl-name">기준 전압 V<sub>set</sub></span>
-          <span class="sl-val" id="vset-val" style="color:#b388ff">20 V</span>
-        </div>
-        <input type="range" class="purple" id="sl-vset" min="5" max="50" value="20" step="1">
-        <div class="sl-hint" id="hint-vset"></div>
-      </div>
-      <div class="sl-block">
-        <div class="sl-row">
-          <span class="sl-name">회로 저항 R</span>
-          <span class="sl-val" id="res-val" style="color:#b388ff">0.15 Ω</span>
-        </div>
-        <input type="range" class="purple" id="sl-res" min="5" max="50" value="15" step="1">
-        <div class="sl-hint" id="hint-res"></div>
-      </div>
-    </div>
-    <div class="divider"></div>
-    <div class="formula-box">
-      <div class="g">η 실시간 계산</div>
-      <div>V_emf = <span class="b">K_e × v × G_r / r</span></div>
-      <div>I &nbsp;&nbsp;&nbsp;= <span class="b">(V_emf − V_set) / R</span></div>
-      <div>P_out = <span class="b">V_set × I</span></div>
-      <div>η &nbsp;&nbsp;&nbsp;= <span class="g">V_set / V_emf × 100</span></div>
-      <div style="margin-top:4px;font-size:0.62rem;color:#444466">
-        R↑ → 동손↑ → <span class="y">η↓</span> &nbsp;|&nbsp; V_set↑ → <span class="y">η↑</span>
-      </div>
-    </div>
-  </aside>
+    /* ═══════════════════════════════════════
+       슬라이더 상태
+    ═══════════════════════════════════════ */
+    const S = {
+      v0:   80,    // km/h
+      mass: 1800,  // kg
+      vset: 350,   // V  ← 20→350 V (EV 배터리 공칭전압)
+      res:  0.50,  // Ω  ← 0.15→0.50 Ω
+    };
 
-  <main class="center">
-    <div class="scene-wrap" id="scene-wrap">
-      <canvas id="scene"></canvas>
-      <div class="click-hint" id="click-hint">▶ 클릭하여 시뮬레이션 시작</div>
-    </div>
-    <div class="energy-section">
-      <div style="font-size:0.63rem;color:var(--muted);letter-spacing:1px;text-transform:uppercase;margin-bottom:1px">에너지 흐름</div>
-      <div class="flow-row">
-        <div class="flow-lbl">운동에너지 KE</div>
-        <div class="flow-track"><div class="flow-fill" id="bar-ke"    style="background:#448aff;width:100%"></div></div>
-        <div class="flow-num"  id="num-ke"    style="color:var(--blue)">— Wh</div>
-      </div>
-      <div class="flow-row">
-        <div class="flow-lbl">모터 발전 전력</div>
-        <div class="flow-track"><div class="flow-fill" id="bar-motor" style="background:#00c9a7;width:95%"></div></div>
-        <div class="flow-num"  id="num-motor" style="color:#00c9a7">— Wh</div>
-      </div>
-      <div class="flow-row">
-        <div class="flow-lbl">동손 손실 (I²R)</div>
-        <div class="flow-track"><div class="flow-fill" id="bar-loss"  style="background:#ff5252;width:5%"></div></div>
-        <div class="flow-num"  id="num-loss"  style="color:var(--red)">— Wh</div>
-      </div>
-      <div class="flow-row">
-        <div class="flow-lbl">배터리 저장</div>
-        <div class="flow-track"><div class="flow-fill" id="bar-bat"   style="background:#00e676;width:74%"></div></div>
-        <div class="flow-num"  id="num-bat"   style="color:var(--green)">— Wh</div>
-      </div>
-    </div>
-  </main>
+    /* ═══════════════════════════════════════
+       물리 함수
+    ═══════════════════════════════════════ */
+    const emfAt = (v_ms: number) => K_e * (v_ms * G_r / R_w);
+    const vmaxNow = () => emfAt(S.v0 / 3.6);
+    const keNow = () => { const v = S.v0 / 3.6; return 0.5 * S.mass * v * v / 3600; };
+    const currentAt = (v_ms: number) => {
+      const emf = emfAt(v_ms);
+      if (emf <= S.vset) return 0;
+      return (emf - S.vset) / S.res;
+    };
+    const etaAt = (v_ms: number) => {
+      const emf = emfAt(v_ms);
+      if (emf <= S.vset || emf <= 0) return 0;
+      return Math.min(100, (S.vset / emf) * 100);
+    };
+    const pOutAt = (v_ms: number) => S.vset * currentAt(v_ms);
+    const pInAt  = (v_ms: number) => emfAt(v_ms) * currentAt(v_ms);
+    const pLossAt = (v_ms: number) => { const I = currentAt(v_ms); return I * I * S.res; };
 
-  <aside class="right">
-    <div style="font-size:0.62rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted)">
-      <span class="pill" style="background:rgba(0,230,118,0.12);color:var(--green);border:1px solid rgba(0,230,118,0.25)">02 종속변인</span>
-    </div>
-    <div class="kpi">
-      <div class="kpi-label">회생 에너지 E_stored</div>
-      <div class="kpi-val" id="kpi-e" style="color:var(--green)">0.000</div>
-      <div class="kpi-unit">Wh (이번 제동 누적)</div>
-    </div>
-    <div class="kpi">
-      <div class="kpi-label">최대 유도 기전력 V_max</div>
-      <div class="kpi-val" id="kpi-vmax" style="color:var(--blue)">—</div>
-      <div class="kpi-unit">V (제동 시작 순간)</div>
-    </div>
-    <div class="kpi">
-      <div class="kpi-label">에너지 회수 효율 η</div>
-      <div class="kpi-val" id="kpi-eta" style="color:var(--yellow)">—</div>
-      <div class="kpi-unit">% (V_set / V_emf)</div>
-    </div>
-    <div class="divider"></div>
-    <div class="kpi">
-      <div class="kpi-label">총 운동에너지 KE</div>
-      <div class="kpi-val" id="kpi-ke" style="color:var(--muted);font-size:1rem">—</div>
-      <div class="kpi-unit">Wh</div>
-    </div>
-    <div class="kpi">
-      <div class="kpi-label">현재 유도 기전력</div>
-      <div class="kpi-val" id="kpi-cemf" style="color:var(--muted);font-size:1rem">—</div>
-      <div class="kpi-unit">V (실시간)</div>
-    </div>
-    <div class="kpi">
-      <div class="kpi-label">유도 전류 I</div>
-      <div class="kpi-val" id="kpi-cur" style="color:var(--muted);font-size:1rem">—</div>
-      <div class="kpi-unit">A (실시간)</div>
-    </div>
-    <div class="divider"></div>
-    <div id="charge-status">—</div>
-  </aside>
-</div>
-</div>
+    /* ═══════════════════════════════════════
+       CANVAS
+    ═══════════════════════════════════════ */
+    const canvas = document.getElementById('scene') as HTMLCanvasElement;
+    const ctx = canvas.getContext('2d')!;
 
-<script>
-/* ═══ PHYSICS CONSTANTS ═══ */
-const K_e = 0.048;   // V·s/rad
-const G_r = 8.2;     // 감속비
-const R_w = 0.316;   // 타이어 반경 m
-const TIME_SCALE = 3.0;
-
-/* ═══ SLIDER STATE ═══ */
-// S.res 는 Ω 단위로 직접 보관
-const S = { v0:80, mass:1800, vset:20, res:0.15 };
-
-/* ═══ PHYSICS — 모든 함수는 S를 직접 참조 ═══ */
-
-// 속도(m/s) → V_emf(V)
-function emfAt(v_ms) {
-  return K_e * (v_ms * G_r / R_w);
-}
-
-// 현재 V₀ 에서 최대 V_emf
-function vmaxNow() {
-  return emfAt(S.v0 / 3.6);
-}
-
-// KE (Wh)
-function keNow() {
-  const v = S.v0 / 3.6;
-  return 0.5 * S.mass * v * v / 3600;
-}
-
-// 전류 A — V_emf > V_set 일 때만
-function currentAt(v_ms) {
-  const emf = emfAt(v_ms);
-  return emf > S.vset ? (emf - S.vset) / S.res : 0;
-}
-
-// 효율 % — P_out/P_in = V_set/V_emf
-function etaAt(v_ms) {
-  const emf = emfAt(v_ms);
-  if (emf <= S.vset) return 0;
-  return Math.min(100, (S.vset / emf) * 100);
-}
-
-// 배터리로 들어가는 출력 전력 W
-function pOutAt(v_ms) {
-  const emf = emfAt(v_ms);
-  if (emf <= S.vset) return 0;
-  const I = (emf - S.vset) / S.res;
-  return S.vset * I;
-}
-
-/* ═══ CANVAS ═══ */
-const canvas = document.getElementById('scene');
-const ctx    = canvas.getContext('2d');
-function resizeCanvas() {
-  const w = document.getElementById('scene-wrap');
-  canvas.width  = w.clientWidth;
-  canvas.height = w.clientHeight;
-}
-
-/* ═══ SIMULATION STATE ═══ */
-const sim = {
-  running:false, rafId:null, lastTime:null, _stopTimer:null,
-  v:0, v0_ms:0, a_dec:0,
-  regenWh:0,        // 이번 제동에서 회생된 누적 에너지 Wh
-  maxRegenWh:1,     // 이론적 최대 회수 에너지 (게이지 100% 기준)
-  wheelAngle:0, dashOffset:0,
-  particles:[], bolts:[],
-};
-
-/* ═══ START ═══ */
-function startSim() {
-  if (sim.rafId      !== null) { cancelAnimationFrame(sim.rafId); sim.rafId=null; }
-  if (sim._stopTimer !== null) { clearTimeout(sim._stopTimer);    sim._stopTimer=null; }
-
-  const v0_ms = S.v0 / 3.6;
-
-  sim.running    = true;
-  sim.lastTime   = null;
-  sim.v0_ms      = v0_ms;
-  sim.v          = v0_ms;
-  sim.a_dec      = 4.9 * TIME_SCALE;
-  sim.regenWh    = 0;
-
-  // 게이지 100% 기준: 초기 KE × 이론 효율 (0이면 KE 전체)
-  const etaInit = etaAt(v0_ms);
-  sim.maxRegenWh = etaInit > 0
-    ? keNow() * (etaInit / 100)
-    : keNow();
-  // 너무 작으면 최소값 보장
-  if (sim.maxRegenWh < 0.001) sim.maxRegenWh = 0.001;
-
-  sim.wheelAngle = 0;
-  sim.dashOffset = 0;
-  sim.particles  = [];
-  sim.bolts      = [];
-
-  document.getElementById('click-hint').style.opacity = '0';
-  sim.rafId = requestAnimationFrame(rafLoop);
-}
-
-/* ═══ STOP ═══ */
-function stopSim() {
-  sim.running = false;
-  if (sim.rafId !== null) { cancelAnimationFrame(sim.rafId); sim.rafId=null; }
-  const h = document.getElementById('click-hint');
-  h.textContent  = '▶ 클릭하여 다시 시작';
-  h.style.opacity = '1';
-}
-
-/* ═══ RAF LOOP ═══ */
-function rafLoop(timestamp) {
-  if (!sim.running) return;
-
-  if (sim.lastTime === null) sim.lastTime = timestamp;
-  const dt = Math.min((timestamp - sim.lastTime) / 1000, 0.05);
-  sim.lastTime = timestamp;
-
-  /* 물리 스텝 */
-  if (sim.v > 0.05) {
-    sim.v = Math.max(0, sim.v - sim.a_dec * dt);
-    sim.wheelAngle += (sim.v / R_w) * dt;
-    sim.dashOffset  = (sim.dashOffset + sim.v * dt * 50) % 80;
-
-    /* ── 에너지 적산 ──
-       dt_phys: 실제 물리 시간 (배속 제거)
-       pOutAt : V_emf > V_set 조건 내부에서만 > 0 반환 */
-    const dt_phys = dt / TIME_SCALE;
-    const p_out   = pOutAt(sim.v);   // W, 조건 불충족 시 0
-    sim.regenWh  += p_out * dt_phys / 3600;
-
-    /* 파티클 — V_emf > V_set 일 때만 */
-    if (emfAt(sim.v) > S.vset) {
-      const W=canvas.width, H=canvas.height;
-      const roadY=H*0.60, carCX=W*0.42, carY=roadY-H*0.16;
-      const ratio=sim.v/sim.v0_ms;
-      if (Math.random()<ratio*0.45)
-        sim.particles.push({x:carCX+(Math.random()-.5)*55,y:carY+(Math.random()-.5)*28,vx:(Math.random()-.5)*2.2,vy:-Math.random()*3.2-.4,life:1,size:Math.random()*3+1.5});
-      if (Math.random()<ratio*0.12)
-        sim.bolts.push({x1:carCX+55,y1:carY,x2:carCX+75+Math.random()*20,y2:carY-10+Math.random()*20,life:1});
+    function resizeCanvas() {
+      const wrap = document.getElementById('scene-wrap')!;
+      canvas.width  = wrap.clientWidth;
+      canvas.height = wrap.clientHeight;
     }
-  } else {
-    sim.v = 0;
-    if (sim._stopTimer === null)
-      sim._stopTimer = setTimeout(()=>{ sim._stopTimer=null; stopSim(); }, 500);
-  }
 
-  /* 파티클 업데이트 */
-  sim.particles = sim.particles.filter(p=>p.life>0.02);
-  sim.particles.forEach(p=>{ p.x+=p.vx; p.y+=p.vy; p.vy+=0.1; p.life-=0.03; });
-  sim.bolts = sim.bolts.filter(b=>b.life>0.05);
-  sim.bolts.forEach(b=>{ b.life-=0.18; });
+    /* ═══════════════════════════════════════
+       시뮬레이션 상태
+    ═══════════════════════════════════════ */
+    interface Particle { x:number; y:number; vx:number; vy:number; life:number; size:number; }
+    interface Bolt { x1:number; y1:number; x2:number; y2:number; life:number; }
 
-  drawScene();
-  updateUI();
-  sim.rafId = requestAnimationFrame(rafLoop);
-}
+    const sim = {
+      running:    false,
+      rafId:      null as number|null,
+      lastTime:   null as number|null,
+      _stopTimer: null as ReturnType<typeof setTimeout>|null,
+      v:          0,
+      v0_ms:      0,
+      a_dec:      0,
+      regenWh:    0,
+      maxRegenWh: 1,
+      wheelAngle: 0,
+      dashOffset: 0,
+      particles:  [] as Particle[],
+      bolts:      [] as Bolt[],
+    };
 
-/* ═══ STATIC DRAW (슬라이더 조작 시) ═══ */
-function staticDraw() {
-  sim.v       = S.v0 / 3.6;
-  sim.v0_ms   = sim.v;
-  sim.regenWh = 0;
-  drawScene();
-  updateUI();
-}
+    /* ═══════════════════════════════════════
+       START / STOP
+    ═══════════════════════════════════════ */
+    function startSim() {
+      if (sim.rafId      !== null) { cancelAnimationFrame(sim.rafId); sim.rafId = null; }
+      if (sim._stopTimer !== null) { clearTimeout(sim._stopTimer);    sim._stopTimer = null; }
+      const v0_ms = S.v0 / 3.6;
+      sim.running    = true;
+      sim.lastTime   = null;
+      sim.v0_ms      = v0_ms;
+      sim.v          = v0_ms;
+      sim.a_dec      = 4.9 * TIME_SCALE;
+      sim.regenWh    = 0;
+      const eta0 = etaAt(v0_ms);
+      sim.maxRegenWh = eta0 > 0 ? keNow() * (eta0 / 100) : keNow();
+      if (sim.maxRegenWh < 1e-6) sim.maxRegenWh = 1e-6;
+      sim.wheelAngle = 0;
+      sim.dashOffset = 0;
+      sim.particles  = [];
+      sim.bolts      = [];
+      const hint = document.getElementById('click-hint')!;
+      hint.style.opacity = '0';
+      sim.rafId = requestAnimationFrame(rafLoop);
+    }
 
-/* ═══ SCENE ═══ */
-function drawScene() {
-  const W=canvas.width, H=canvas.height;
-  if (!W||!H) return;
-  ctx.clearRect(0,0,W,H);
-  const roadY=H*0.60;
-  drawSky(W,H); drawMountains(W,roadY); drawBuildings(W,roadY);
-  drawRoad(W,H,roadY); drawCar(W,H,roadY);
-  drawParticles(); drawBolts();
-  drawSpeedGauge(H);
-  drawRegenGauge(W,H);
-  drawOverlayLabel(W,H,roadY);
-}
+    function stopSim() {
+      sim.running = false;
+      if (sim.rafId !== null) { cancelAnimationFrame(sim.rafId); sim.rafId = null; }
+      const h = document.getElementById('click-hint')!;
+      h.textContent   = '▶ 클릭하여 다시 시작';
+      h.style.opacity = '1';
+    }
 
-function drawSky(W,H){
-  const g=ctx.createLinearGradient(0,0,0,H*0.6);
-  g.addColorStop(0,'#08080f'); g.addColorStop(1,'#10101e');
-  ctx.fillStyle=g; ctx.fillRect(0,0,W,H);
-  ctx.fillStyle='rgba(255,255,255,0.38)';
-  [[.08,.06],[.20,.11],[.33,.04],[.46,.09],[.57,.03],[.70,.12],[.81,.05],[.92,.08]].forEach(([fx,fy])=>{
-    ctx.beginPath(); ctx.arc(fx*W,fy*H,1.2,0,Math.PI*2); ctx.fill();
-  });
-}
-function drawMountains(W,roadY){
-  ctx.fillStyle='#0c0c18'; ctx.beginPath(); ctx.moveTo(0,roadY);
-  [[0,.80],[.10,.60],[.20,.74],[.32,.50],[.44,.68],[.56,.46],[.68,.66],[.80,.44],[.91,.63],[1,.72]].forEach(([fx,fy])=>ctx.lineTo(W*fx,roadY*fy));
-  ctx.lineTo(W,roadY); ctx.closePath(); ctx.fill();
-}
-function drawBuildings(W,roadY){
-  [[.02,.30,.05,.50],[.08,.22,.045,.50],[.14,.36,.038,.50],
-   [.65,.26,.05,.50],[.72,.17,.046,.50],[.79,.33,.06,.50],[.88,.24,.046,.50],[.94,.38,.05,.50]
-  ].forEach(([fx,fy,fw,fh])=>{
-    const bx=W*fx,by=roadY*fy,bw=W*fw,bh=roadY*(fh-fy);
-    ctx.fillStyle='#0f0f1d'; ctx.fillRect(bx,by,bw,bh);
-    for(let c=0;c<3;c++) for(let r=0;r<4;r++){
-      if(((c*7+r*3+Math.floor(fx*100))%5)>1){
-        ctx.fillStyle='rgba(255,220,120,0.14)';
-        ctx.fillRect(bx+bw/4*(c+.3),by+bh/5*(r+.3),bw/4*.5,bh/5*.5);
+    /* ═══════════════════════════════════════
+       RAF LOOP
+    ═══════════════════════════════════════ */
+    function rafLoop(ts: number) {
+      if (!sim.running) return;
+      if (sim.lastTime === null) sim.lastTime = ts;
+      const dt = Math.min((ts - sim.lastTime) / 1000, 0.05);
+      sim.lastTime = ts;
+
+      if (sim.v > 0.05) {
+        sim.v = Math.max(0, sim.v - sim.a_dec * dt);
+        sim.wheelAngle += (sim.v / R_w) * dt;
+        sim.dashOffset  = (sim.dashOffset + sim.v * dt * 50) % 80;
+
+        const dt_phys = dt / TIME_SCALE;
+        const p_out   = pOutAt(sim.v);
+        sim.regenWh  += p_out * dt_phys / 3600;
+
+        if (p_out > 0) {
+          const W=canvas.width, H=canvas.height;
+          const roadY=H*0.60, carCX=W*0.42, carY=roadY-H*0.16;
+          const ratio = sim.v / Math.max(sim.v0_ms, 0.01);
+          if (Math.random() < ratio * 0.45)
+            sim.particles.push({
+              x:carCX+(Math.random()-.5)*55, y:carY+(Math.random()-.5)*28,
+              vx:(Math.random()-.5)*2.2, vy:-Math.random()*3.2-.4,
+              life:1, size:Math.random()*3+1.5
+            });
+          if (Math.random() < ratio * 0.12)
+            sim.bolts.push({
+              x1:carCX+55, y1:carY,
+              x2:carCX+75+Math.random()*20, y2:carY-10+Math.random()*20,
+              life:1
+            });
+        }
+      } else {
+        sim.v = 0;
+        if (sim._stopTimer === null)
+          sim._stopTimer = setTimeout(() => { sim._stopTimer = null; stopSim(); }, 500);
+      }
+
+      sim.particles = sim.particles.filter(p => p.life > 0.02);
+      sim.particles.forEach(p => { p.x+=p.vx; p.y+=p.vy; p.vy+=0.1; p.life-=0.03; });
+      sim.bolts = sim.bolts.filter(b => b.life > 0.05);
+      sim.bolts.forEach(b => { b.life -= 0.18; });
+
+      drawScene();
+      updateUI();
+      sim.rafId = requestAnimationFrame(rafLoop);
+    }
+
+    /* ═══════════════════════════════════════
+       STATIC DRAW
+    ═══════════════════════════════════════ */
+    function staticDraw() {
+      sim.v       = S.v0 / 3.6;
+      sim.v0_ms   = sim.v;
+      sim.regenWh = 0;
+      const eta0 = etaAt(sim.v0_ms);
+      sim.maxRegenWh = eta0 > 0 ? keNow() * (eta0/100) : keNow();
+      if (sim.maxRegenWh < 1e-6) sim.maxRegenWh = 1e-6;
+      drawScene();
+      updateUI();
+    }
+
+    /* ═══════════════════════════════════════
+       DRAW HELPERS
+    ═══════════════════════════════════════ */
+    function rr(c: CanvasRenderingContext2D, x:number, y:number, w:number, h:number, r:number) {
+      c.beginPath();
+      c.moveTo(x+r,y); c.lineTo(x+w-r,y); c.quadraticCurveTo(x+w,y,x+w,y+r);
+      c.lineTo(x+w,y+h-r); c.quadraticCurveTo(x+w,y+h,x+w-r,y+h);
+      c.lineTo(x+r,y+h); c.quadraticCurveTo(x,y+h,x,y+h-r);
+      c.lineTo(x,y+r); c.quadraticCurveTo(x,y,x+r,y);
+      c.closePath();
+    }
+
+    function drawScene() {
+      const W = canvas.width, H = canvas.height;
+      if (!W || !H) return;
+      ctx.clearRect(0, 0, W, H);
+      const roadY = H * 0.60;
+      drawSky(W, H);
+      drawMountains(W, roadY);
+      drawBuildings(W, roadY);
+      drawRoad(W, H, roadY);
+      drawCar(W, H, roadY);
+      drawParticles();
+      drawBolts();
+      drawSpeedGauge(H);
+      drawRegenGauge(W, H);
+      drawOverlayLabel(W, H, roadY);
+    }
+
+    function drawSky(W:number,H:number){
+      const g=ctx.createLinearGradient(0,0,0,H*0.6);
+      g.addColorStop(0,'#08080f'); g.addColorStop(1,'#10101e');
+      ctx.fillStyle=g; ctx.fillRect(0,0,W,H);
+      ctx.fillStyle='rgba(255,255,255,0.35)';
+      [[.08,.06],[.20,.11],[.33,.04],[.46,.09],[.57,.03],[.70,.12],[.81,.05],[.92,.08]].forEach(([fx,fy])=>{
+        ctx.beginPath(); ctx.arc(fx*W,fy*H,1.2,0,Math.PI*2); ctx.fill();
+      });
+    }
+
+    function drawMountains(W:number,roadY:number){
+      ctx.fillStyle='#0c0c18'; ctx.beginPath(); ctx.moveTo(0,roadY);
+      [[0,.80],[.10,.60],[.20,.74],[.32,.50],[.44,.68],[.56,.46],[.68,.66],[.80,.44],[.91,.63],[1,.72]].forEach(([fx,fy])=>ctx.lineTo(W*fx,roadY*fy));
+      ctx.lineTo(W,roadY); ctx.closePath(); ctx.fill();
+    }
+
+    function drawBuildings(W:number,roadY:number){
+      [[.02,.30,.05,.50],[.08,.22,.045,.50],[.14,.36,.038,.50],
+       [.65,.26,.05,.50],[.72,.17,.046,.50],[.79,.33,.06,.50],[.88,.24,.046,.50],[.94,.38,.05,.50]
+      ].forEach(([fx,fy,fw,fh])=>{
+        const bx=W*fx,by=roadY*fy,bw=W*fw,bh=roadY*(fh-fy);
+        ctx.fillStyle='#0f0f1d'; ctx.fillRect(bx,by,bw,bh);
+        for(let c=0;c<3;c++) for(let r=0;r<4;r++){
+          if(((c*7+r*3+Math.floor(fx*100))%5)>1){
+            ctx.fillStyle='rgba(255,220,120,0.13)';
+            ctx.fillRect(bx+bw/4*(c+.3),by+bh/5*(r+.3),bw/4*.5,bh/5*.5);
+          }
+        }
+      });
+    }
+
+    function drawRoad(W:number,H:number,roadY:number){
+      const g=ctx.createLinearGradient(0,roadY,0,H);
+      g.addColorStop(0,'#18182a'); g.addColorStop(1,'#0c0c16');
+      ctx.fillStyle=g; ctx.fillRect(0,roadY,W,H-roadY);
+      ctx.strokeStyle='rgba(255,255,255,0.05)'; ctx.lineWidth=1;
+      ctx.beginPath(); ctx.moveTo(0,roadY); ctx.lineTo(W,roadY); ctx.stroke();
+      ctx.save();
+      ctx.strokeStyle='rgba(255,220,50,0.20)'; ctx.lineWidth=2;
+      ctx.setLineDash([50,30]); ctx.lineDashOffset=-sim.dashOffset;
+      ctx.beginPath(); ctx.moveTo(0,roadY+(H-roadY)*.5); ctx.lineTo(W,roadY+(H-roadY)*.5); ctx.stroke();
+      ctx.setLineDash([]); ctx.restore();
+    }
+
+    function drawCar(W:number,H:number,roadY:number){
+      const carW=Math.min(W*0.24,200), carH=carW*0.44;
+      const carCX=W*0.42, carY=roadY-carH*0.65;
+      const charging = sim.running && sim.v>0.2 && pOutAt(sim.v)>0;
+
+      ctx.save(); ctx.fillStyle='rgba(0,0,0,0.28)';
+      ctx.beginPath(); ctx.ellipse(carCX,roadY+4,carW*.40,carH*.09,0,0,Math.PI*2); ctx.fill(); ctx.restore();
+
+      const bg=ctx.createLinearGradient(carCX-carW/2,carY+carH*.35,carCX-carW/2,carY+carH);
+      bg.addColorStop(0,'#28304e'); bg.addColorStop(.6,'#1c2240'); bg.addColorStop(1,'#12162c');
+      ctx.fillStyle=bg; ctx.beginPath(); rr(ctx,carCX-carW/2,carY+carH*.33,carW,carH*.67,6); ctx.fill();
+
+      const rg=ctx.createLinearGradient(0,carY,0,carY+carH*.40);
+      rg.addColorStop(0,'#323a60'); rg.addColorStop(1,'#1e2650');
+      ctx.fillStyle=rg; ctx.beginPath(); rr(ctx,carCX-carW*.28,carY,carW*.56,carH*.40,8); ctx.fill();
+
+      const wg=ctx.createLinearGradient(0,carY,0,carY+carH*.35);
+      wg.addColorStop(0,'rgba(110,170,255,0.52)'); wg.addColorStop(1,'rgba(50,100,200,0.22)');
+      ctx.fillStyle=wg;
+      ctx.beginPath(); rr(ctx,carCX+carW*.04,carY+carH*.04,carW*.20,carH*.30,4); ctx.fill();
+      ctx.beginPath(); rr(ctx,carCX-carW*.25,carY+carH*.05,carW*.26,carH*.28,4); ctx.fill();
+
+      ctx.save(); ctx.strokeStyle='rgba(100,140,255,0.20)'; ctx.lineWidth=1.5;
+      ctx.beginPath(); ctx.moveTo(carCX-carW*.45,carY+carH*.48); ctx.lineTo(carCX+carW*.45,carY+carH*.48); ctx.stroke(); ctx.restore();
+
+      ctx.save(); ctx.fillStyle='rgba(200,230,255,0.95)'; ctx.shadowColor='#a0c8ff'; ctx.shadowBlur=16;
+      ctx.beginPath(); ctx.ellipse(carCX+carW*.46,carY+carH*.44,carW*.036,carH*.068,0,0,Math.PI*2); ctx.fill(); ctx.restore();
+
+      ctx.save();
+      ctx.fillStyle   = charging ? '#ff2020' : 'rgba(130,0,0,0.5)';
+      ctx.shadowColor = charging ? '#ff0000' : 'transparent';
+      ctx.shadowBlur  = charging ? 20 : 0;
+      ctx.beginPath(); ctx.ellipse(carCX-carW*.46,carY+carH*.44,carW*.030,carH*.062,0,0,Math.PI*2); ctx.fill(); ctx.restore();
+
+      ctx.save();
+      ctx.fillStyle='rgba(0,230,118,0.11)'; ctx.strokeStyle='rgba(0,230,118,0.42)'; ctx.lineWidth=1;
+      ctx.beginPath(); rr(ctx,carCX-carW*.11,carY+carH*.54,carW*.22,carH*.20,4); ctx.fill(); ctx.stroke();
+      ctx.fillStyle='#00e676'; ctx.font=`bold ${Math.round(carH*.13)}px monospace`;
+      ctx.textAlign='center'; ctx.fillText('EV',carCX,carY+carH*.69); ctx.restore();
+
+      drawWheel(carCX+carW*.30, roadY, carH*.23);
+      drawWheel(carCX-carW*.26, roadY, carH*.23);
+      if (sim.running && sim.v > 0.2) drawRegenArc(carCX, carY-carH*.18, carW*.48);
+    }
+
+    function drawWheel(cx:number,cy:number,r:number){
+      ctx.save();
+      ctx.fillStyle='#111'; ctx.strokeStyle='#252535'; ctx.lineWidth=2;
+      ctx.beginPath(); ctx.arc(cx,cy,r,0,Math.PI*2); ctx.fill(); ctx.stroke();
+      ctx.translate(cx,cy); ctx.rotate(sim.wheelAngle);
+      ctx.strokeStyle='#3a4470'; ctx.lineWidth=1.5;
+      for(let i=0;i<5;i++){
+        const a=(i/5)*Math.PI*2;
+        ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(Math.cos(a)*(r-3),Math.sin(a)*(r-3)); ctx.stroke();
+      }
+      ctx.fillStyle='#2e3860'; ctx.beginPath(); ctx.arc(0,0,r*.28,0,Math.PI*2); ctx.fill();
+      ctx.fillStyle='#4a5888'; ctx.beginPath(); ctx.arc(0,0,r*.10,0,Math.PI*2); ctx.fill();
+      ctx.restore();
+    }
+
+    function drawRegenArc(cx:number,cy:number,r:number){
+      const eta = etaAt(sim.v);
+      const frac = sim.v0_ms > 0 ? Math.max(0, 1 - sim.v/sim.v0_ms) : 0;
+      ctx.save();
+      ctx.beginPath(); ctx.arc(cx,cy,r,Math.PI,2*Math.PI);
+      ctx.strokeStyle='rgba(255,255,255,0.05)'; ctx.lineWidth=5; ctx.lineCap='round'; ctx.stroke();
+      if (eta > 0) {
+        ctx.beginPath(); ctx.arc(cx,cy,r,Math.PI,Math.PI+frac*Math.PI);
+        ctx.strokeStyle='#00e676'; ctx.shadowColor='#00e676'; ctx.shadowBlur=12; ctx.stroke();
+        ctx.shadowBlur=0; ctx.fillStyle='rgba(0,230,118,0.85)';
+        ctx.font='bold 10px monospace'; ctx.textAlign='center';
+        ctx.fillText(`η ${eta.toFixed(0)}%`,cx,cy+14);
+      } else {
+        ctx.shadowBlur=0; ctx.fillStyle='rgba(255,82,82,0.7)';
+        ctx.font='bold 10px monospace'; ctx.textAlign='center';
+        ctx.fillText('충전 불가',cx,cy+14);
+      }
+      ctx.restore();
+    }
+
+    function drawParticles(){
+      sim.particles.forEach(p=>{
+        ctx.save(); ctx.globalAlpha=Math.max(0,p.life*.85);
+        ctx.fillStyle='#00e676'; ctx.shadowColor='#00e676'; ctx.shadowBlur=7;
+        ctx.beginPath(); ctx.arc(p.x,p.y,p.size*Math.max(0,p.life),0,Math.PI*2); ctx.fill(); ctx.restore();
+      });
+    }
+
+    function drawBolts(){
+      sim.bolts.forEach(b=>{
+        ctx.save(); ctx.globalAlpha=Math.max(0,b.life*.65);
+        ctx.strokeStyle='#ffd740'; ctx.shadowColor='#ffd740'; ctx.shadowBlur=9; ctx.lineWidth=1.5;
+        const pts:number[][] =[[b.x1,b.y1]];
+        for(let i=1;i<5;i++){
+          const t=i/5;
+          pts.push([b.x1+(b.x2-b.x1)*t+(Math.random()-.5)*14, b.y1+(b.y2-b.y1)*t+(Math.random()-.5)*10]);
+        }
+        pts.push([b.x2,b.y2]);
+        ctx.beginPath(); ctx.moveTo(pts[0][0],pts[0][1]);
+        pts.slice(1).forEach(p=>ctx.lineTo(p[0],p[1])); ctx.stroke(); ctx.restore();
+      });
+    }
+
+    function drawSpeedGauge(H:number){
+      const cx=48,cy=H*.12,R=34;
+      const sa=Math.PI*.75,ea=Math.PI*2.25;
+      const maxV = Math.max(sim.v0_ms, S.v0/3.6, 0.01);
+      const pct  = Math.min(1, sim.v / maxV);
+      ctx.save();
+      ctx.fillStyle='rgba(13,13,22,0.82)'; ctx.strokeStyle='rgba(255,255,255,0.05)'; ctx.lineWidth=1;
+      ctx.beginPath(); ctx.arc(cx,cy,R+9,0,Math.PI*2); ctx.fill(); ctx.stroke();
+      ctx.beginPath(); ctx.arc(cx,cy,R,sa,ea);
+      ctx.strokeStyle='rgba(255,255,255,0.06)'; ctx.lineWidth=5; ctx.lineCap='round'; ctx.stroke();
+      const g=ctx.createLinearGradient(cx-R,cy,cx+R,cy);
+      g.addColorStop(0,'#448aff'); g.addColorStop(1,'#00e676');
+      ctx.beginPath(); ctx.arc(cx,cy,R,sa,sa+pct*(ea-sa));
+      ctx.strokeStyle=g; ctx.shadowColor='#448aff'; ctx.shadowBlur=9; ctx.stroke();
+      ctx.shadowBlur=0;
+      ctx.fillStyle='#e0e0f0'; ctx.font='bold 14px monospace';
+      ctx.textAlign='center'; ctx.textBaseline='middle';
+      ctx.fillText(String(Math.round(sim.v*3.6)), cx, cy-1);
+      ctx.font='8px sans-serif'; ctx.fillStyle='rgba(170,170,210,0.5)';
+      ctx.fillText('km/h', cx, cy+13);
+      ctx.restore();
+    }
+
+    function drawRegenGauge(W:number,H:number){
+      const bw=28, bh=80;
+      const bx=W-62, by=H*0.06;
+      const pct = Math.min(1, sim.regenWh / sim.maxRegenWh);
+      ctx.save();
+      ctx.fillStyle='rgba(13,13,22,0.84)'; ctx.strokeStyle='rgba(255,255,255,0.05)'; ctx.lineWidth=1;
+      ctx.beginPath(); rr(ctx,bx-14,by-30,bw+28,bh+58,10); ctx.fill(); ctx.stroke();
+      ctx.fillStyle='rgba(0,230,118,0.65)'; ctx.font='bold 8px sans-serif'; ctx.textAlign='center';
+      ctx.fillText('회생',   bx+bw/2, by-17);
+      ctx.fillText('에너지', bx+bw/2, by-7);
+      ctx.fillStyle='rgba(255,255,255,0.08)';
+      ctx.beginPath(); rr(ctx,bx+bw*.2,by-3,bw*.6,5,2); ctx.fill();
+      ctx.strokeStyle='rgba(255,255,255,0.10)'; ctx.lineWidth=1.5;
+      ctx.fillStyle='#0e0e1a';
+      ctx.beginPath(); rr(ctx,bx,by,bw,bh,4); ctx.fill(); ctx.stroke();
+      if (pct > 0.001) {
+        const fillH = bh * pct;
+        const fillY = by + bh - fillH;
+        const fg = ctx.createLinearGradient(0,fillY,0,by+bh);
+        fg.addColorStop(0,'#00e676'); fg.addColorStop(1,'#00c853');
+        ctx.fillStyle=fg; ctx.shadowColor='#00e676'; ctx.shadowBlur=8;
+        ctx.beginPath(); rr(ctx,bx+2,fillY,bw-4,fillH,3); ctx.fill();
+        ctx.shadowBlur=0;
+      }
+      ctx.fillStyle='#e0e0f0'; ctx.font='bold 10px monospace';
+      ctx.textAlign='center'; ctx.textBaseline='alphabetic';
+      ctx.fillText((pct*100).toFixed(0)+'%', bx+bw/2, by+bh+16);
+      ctx.font='7.5px monospace';
+      ctx.fillStyle = sim.regenWh > 0 ? 'rgba(0,230,118,0.75)' : 'rgba(255,82,82,0.6)';
+      ctx.fillText(sim.regenWh.toFixed(3)+'Wh', bx+bw/2, by+bh+27);
+      if (sim.running && pOutAt(sim.v) > 0) {
+        ctx.fillStyle='rgba(0,230,118,0.5)'; ctx.font='8px sans-serif';
+        ctx.fillText('충전 중⚡', bx+bw/2, by+bh+38);
+      } else if (sim.running && sim.v > 0.2) {
+        ctx.fillStyle='rgba(255,82,82,0.5)'; ctx.font='8px sans-serif';
+        ctx.fillText('충전 불가', bx+bw/2, by+bh+38);
+      }
+      ctx.restore();
+    }
+
+    function drawOverlayLabel(W:number,H:number,roadY:number){
+      if(!sim.running || sim.v < 0.3) return;
+      const carCX = W*0.42;
+      const emf   = emfAt(sim.v);
+      const eta   = etaAt(sim.v);
+      ctx.save(); ctx.textAlign='left';
+      ctx.fillStyle='rgba(68,138,255,0.88)'; ctx.font='bold 11px monospace';
+      ctx.fillText(`V_emf: ${emf.toFixed(1)} V  η: ${eta.toFixed(0)}%`, carCX+W*.08, roadY-H*.12);
+      if (emf > S.vset) {
+        ctx.fillStyle='rgba(0,230,118,0.80)'; ctx.font='10px sans-serif';
+        ctx.fillText('⚡ 회생 충전 중 → E: '+sim.regenWh.toFixed(3)+' Wh', carCX+W*.08, roadY-H*.065);
+      } else {
+        ctx.fillStyle='rgba(255,82,82,0.80)'; ctx.font='10px sans-serif';
+        ctx.fillText(`⚠ V_emf(${emf.toFixed(1)}V) < V_set(${S.vset}V) — 충전 불가`, carCX+W*.08, roadY-H*.065);
+      }
+      ctx.restore();
+    }
+
+    /* ═══════════════════════════════════════
+       UI 업데이트
+    ═══════════════════════════════════════ */
+    function setText(id:string, v:string){
+      const e=document.getElementById(id); if(e) e.textContent=v;
+    }
+    function setBar(bid:string, pct:number, nid:string, val:number, col:string){
+      const b=document.getElementById(bid), n=document.getElementById(nid);
+      if(b){ b.style.width=Math.max(0,Math.min(100,isFinite(pct)?pct:0)).toFixed(1)+'%'; b.style.background=col; }
+      if(n){ n.textContent=(isFinite(val)?val:0).toFixed(4)+' Wh'; n.style.color=col; }
+    }
+
+    function updateUI(){
+      const v_cur  = sim.running ? sim.v : S.v0/3.6;
+      const KE     = keNow();
+      const Vmax   = vmaxNow();
+      const emf_c  = emfAt(v_cur);
+      const eta_c  = etaAt(v_cur);
+      const I_c    = currentAt(v_cur);
+
+      setText('kpi-e',    sim.regenWh.toFixed(4));
+      setText('kpi-vmax', Vmax.toFixed(1));
+      setText('kpi-eta',  eta_c.toFixed(1));
+      setText('kpi-ke',   KE.toFixed(4));
+      setText('kpi-cemf', emf_c.toFixed(1));
+      setText('kpi-cur',  I_c.toFixed(2));
+
+      const P_gen = pInAt(S.v0/3.6);
+      const P_ls  = pLossAt(S.v0/3.6);
+      const P_out = pOutAt(S.v0/3.6);
+
+      if (KE > 0 && P_gen > 0) {
+        setBar('bar-ke',    100,                        'num-ke',    KE,                          '#448aff');
+        setBar('bar-motor', 100,                        'num-motor', KE*(P_gen/Math.max(P_gen,0.001)), '#00c9a7');
+        setBar('bar-loss',  (P_ls /P_gen)*100,          'num-loss',  KE*(P_ls /P_gen),            '#ff5252');
+        setBar('bar-bat',   (P_out/P_gen)*100,          'num-bat',   KE*(P_out/P_gen),            '#00e676');
+      } else if (KE > 0) {
+        setBar('bar-ke',   100,'num-ke',   KE, '#448aff');
+        setBar('bar-motor',  0,'num-motor', 0, '#00c9a7');
+        setBar('bar-loss',   0,'num-loss',  0, '#ff5252');
+        setBar('bar-bat',    0,'num-bat',   0, '#00e676');
+      }
+
+      const el = document.getElementById('charge-status')!;
+      if (Vmax > S.vset) {
+        el.textContent = `✅ 충전 가능\nV_emf ${Vmax.toFixed(1)}V > V_set ${S.vset}V`;
+        el.style.cssText = 'background:rgba(0,230,118,0.10);color:#00e676;border:1px solid rgba(0,230,118,0.30);padding:9px 12px;border-radius:8px;font-size:0.71rem;font-weight:600;text-align:center;line-height:1.7;white-space:pre;';
+      } else {
+        el.textContent = `❌ 충전 불가\nV_emf ${Vmax.toFixed(1)}V ≤ V_set ${S.vset}V`;
+        el.style.cssText = 'background:rgba(255,82,82,0.10);color:#ff5252;border:1px solid rgba(255,82,82,0.30);padding:9px 12px;border-radius:8px;font-size:0.71rem;font-weight:600;text-align:center;line-height:1.7;white-space:pre;';
       }
     }
-  });
-}
-function drawRoad(W,H,roadY){
-  const g=ctx.createLinearGradient(0,roadY,0,H);
-  g.addColorStop(0,'#18182a'); g.addColorStop(1,'#0c0c16');
-  ctx.fillStyle=g; ctx.fillRect(0,roadY,W,H-roadY);
-  ctx.strokeStyle='rgba(255,255,255,0.05)'; ctx.lineWidth=1;
-  ctx.beginPath(); ctx.moveTo(0,roadY); ctx.lineTo(W,roadY); ctx.stroke();
-  ctx.save();
-  ctx.strokeStyle='rgba(255,220,50,0.20)'; ctx.lineWidth=2;
-  ctx.setLineDash([50,30]); ctx.lineDashOffset=-sim.dashOffset;
-  ctx.beginPath(); ctx.moveTo(0,roadY+(H-roadY)*.5); ctx.lineTo(W,roadY+(H-roadY)*.5); ctx.stroke();
-  ctx.setLineDash([]); ctx.restore();
-}
-function drawCar(W,H,roadY){
-  const carW=Math.min(W*0.24,200), carH=carW*0.44;
-  const carCX=W*0.42, carY=roadY-carH*0.65;
-  const charging = sim.running && sim.v>0.2 && emfAt(sim.v)>S.vset;
 
-  ctx.save(); ctx.fillStyle='rgba(0,0,0,0.28)';
-  ctx.beginPath(); ctx.ellipse(carCX,roadY+4,carW*.40,carH*.09,0,0,Math.PI*2); ctx.fill(); ctx.restore();
-
-  const bg=ctx.createLinearGradient(carCX-carW/2,carY+carH*.35,carCX-carW/2,carY+carH);
-  bg.addColorStop(0,'#28304e'); bg.addColorStop(.6,'#1c2240'); bg.addColorStop(1,'#12162c');
-  ctx.fillStyle=bg; ctx.beginPath(); rr(ctx,carCX-carW/2,carY+carH*.33,carW,carH*.67,6); ctx.fill();
-
-  const rg=ctx.createLinearGradient(0,carY,0,carY+carH*.40);
-  rg.addColorStop(0,'#323a60'); rg.addColorStop(1,'#1e2650');
-  ctx.fillStyle=rg; ctx.beginPath(); rr(ctx,carCX-carW*.28,carY,carW*.56,carH*.40,8); ctx.fill();
-
-  const wg=ctx.createLinearGradient(0,carY,0,carY+carH*.35);
-  wg.addColorStop(0,'rgba(110,170,255,0.52)'); wg.addColorStop(1,'rgba(50,100,200,0.22)');
-  ctx.fillStyle=wg;
-  ctx.beginPath(); rr(ctx,carCX+carW*.04,carY+carH*.04,carW*.20,carH*.30,4); ctx.fill();
-  ctx.beginPath(); rr(ctx,carCX-carW*.25,carY+carH*.05,carW*.26,carH*.28,4); ctx.fill();
-
-  ctx.save(); ctx.strokeStyle='rgba(100,140,255,0.22)'; ctx.lineWidth=1.5;
-  ctx.beginPath(); ctx.moveTo(carCX-carW*.45,carY+carH*.48); ctx.lineTo(carCX+carW*.45,carY+carH*.48); ctx.stroke(); ctx.restore();
-
-  ctx.save(); ctx.fillStyle='rgba(200,230,255,0.95)'; ctx.shadowColor='#a0c8ff'; ctx.shadowBlur=16;
-  ctx.beginPath(); ctx.ellipse(carCX+carW*.46,carY+carH*.44,carW*.036,carH*.068,0,0,Math.PI*2); ctx.fill(); ctx.restore();
-
-  ctx.save();
-  ctx.fillStyle   = charging ? '#ff2020' : 'rgba(130,0,0,0.5)';
-  ctx.shadowColor = charging ? '#ff0000' : 'transparent';
-  ctx.shadowBlur  = charging ? 20 : 0;
-  ctx.beginPath(); ctx.ellipse(carCX-carW*.46,carY+carH*.44,carW*.030,carH*.062,0,0,Math.PI*2); ctx.fill(); ctx.restore();
-
-  ctx.save();
-  ctx.fillStyle='rgba(0,230,118,0.11)'; ctx.strokeStyle='rgba(0,230,118,0.42)'; ctx.lineWidth=1;
-  ctx.beginPath(); rr(ctx,carCX-carW*.11,carY+carH*.54,carW*.22,carH*.20,4); ctx.fill(); ctx.stroke();
-  ctx.fillStyle='#00e676'; ctx.font=`bold ${Math.round(carH*.13)}px monospace`;
-  ctx.textAlign='center'; ctx.fillText('EV',carCX,carY+carH*.69); ctx.restore();
-
-  drawWheel(carCX+carW*.30,roadY,carH*.23);
-  drawWheel(carCX-carW*.26,roadY,carH*.23);
-  if(sim.running&&sim.v>0.2) drawRegenArc(carCX,carY-carH*.18,carW*.48);
-}
-function drawWheel(cx,cy,r){
-  ctx.save();
-  ctx.fillStyle='#111'; ctx.strokeStyle='#252535'; ctx.lineWidth=2;
-  ctx.beginPath(); ctx.arc(cx,cy,r,0,Math.PI*2); ctx.fill(); ctx.stroke();
-  ctx.translate(cx,cy); ctx.rotate(sim.wheelAngle);
-  ctx.strokeStyle='#3a4470'; ctx.lineWidth=1.5;
-  for(let i=0;i<5;i++){
-    const a=(i/5)*Math.PI*2;
-    ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(Math.cos(a)*(r-3),Math.sin(a)*(r-3)); ctx.stroke();
-  }
-  ctx.fillStyle='#2e3860'; ctx.beginPath(); ctx.arc(0,0,r*.28,0,Math.PI*2); ctx.fill();
-  ctx.fillStyle='#4a5888'; ctx.beginPath(); ctx.arc(0,0,r*.10,0,Math.PI*2); ctx.fill();
-  ctx.restore();
-}
-function drawRegenArc(cx,cy,r){
-  const eta=etaAt(sim.v);
-  if(eta<=0) return;
-  const frac=sim.v0_ms>0 ? Math.max(0,1-sim.v/sim.v0_ms) : 0;
-  ctx.save();
-  ctx.beginPath(); ctx.arc(cx,cy,r,Math.PI,2*Math.PI);
-  ctx.strokeStyle='rgba(255,255,255,0.05)'; ctx.lineWidth=5; ctx.lineCap='round'; ctx.stroke();
-  ctx.beginPath(); ctx.arc(cx,cy,r,Math.PI,Math.PI+frac*Math.PI);
-  ctx.strokeStyle='#00e676'; ctx.shadowColor='#00e676'; ctx.shadowBlur=12; ctx.stroke();
-  ctx.shadowBlur=0; ctx.fillStyle='rgba(0,230,118,0.85)';
-  ctx.font='bold 10px monospace'; ctx.textAlign='center';
-  ctx.fillText(`η ${eta.toFixed(0)}%`,cx,cy+14);
-  ctx.restore();
-}
-function drawParticles(){
-  sim.particles.forEach(p=>{
-    ctx.save(); ctx.globalAlpha=Math.max(0,p.life*.85);
-    ctx.fillStyle='#00e676'; ctx.shadowColor='#00e676'; ctx.shadowBlur=7;
-    ctx.beginPath(); ctx.arc(p.x,p.y,p.size*Math.max(0,p.life),0,Math.PI*2); ctx.fill(); ctx.restore();
-  });
-}
-function drawBolts(){
-  sim.bolts.forEach(b=>{
-    ctx.save(); ctx.globalAlpha=Math.max(0,b.life*.65);
-    ctx.strokeStyle='#ffd740'; ctx.shadowColor='#ffd740'; ctx.shadowBlur=9; ctx.lineWidth=1.5;
-    const pts=[[b.x1,b.y1]];
-    for(let i=1;i<5;i++){
-      const t=i/5;
-      pts.push([b.x1+(b.x2-b.x1)*t+(Math.random()-.5)*14,b.y1+(b.y2-b.y1)*t+(Math.random()-.5)*10]);
+    /* ═══════════════════════════════════════
+       힌트 텍스트
+    ═══════════════════════════════════════ */
+    function updateHints(){
+      const emf0 = vmaxNow();
+      const ok   = emf0 > S.vset;
+      const eta0 = etaAt(S.v0/3.6);
+      const KE   = keNow();
+      setText('hint-v0',
+        `V_emf = ${emf0.toFixed(1)} V | KE = ${KE.toFixed(3)} Wh → ${ok?'충전 가능 ✅':'V_set 낮추거나 V₀ 높이세요 ❌'}`);
+      setText('hint-vset',
+        `V_emf = ${emf0.toFixed(1)} V | V_set = ${S.vset} V → ${ok?`η = ${eta0.toFixed(1)}%`:'충전 불가 — V_set > V_emf ❌'}`);
+      setText('hint-res',
+        `R = ${S.res.toFixed(2)} Ω | I = ${currentAt(S.v0/3.6).toFixed(1)} A | η = ${eta0.toFixed(1)}%`);
+      setText('hint-mass',
+        `m = ${S.mass} kg | KE = ½×${S.mass}×${(S.v0/3.6).toFixed(1)}² = ${KE.toFixed(3)} Wh`);
     }
-    pts.push([b.x2,b.y2]);
-    ctx.beginPath(); ctx.moveTo(pts[0][0],pts[0][1]);
-    pts.slice(1).forEach(p=>ctx.lineTo(p[0],p[1])); ctx.stroke(); ctx.restore();
-  });
+
+    /* ═══════════════════════════════════════
+       슬라이더 바인딩
+    ═══════════════════════════════════════ */
+    function bindSliders(){
+      document.getElementById('sl-v0')!.addEventListener('input', function(this: HTMLInputElement){
+        S.v0 = +this.value;
+        document.getElementById('v0-val')!.textContent = S.v0 + ' km/h';
+        updateHints();
+        if (!sim.running) staticDraw(); else updateUI();
+      });
+      document.getElementById('sl-mass')!.addEventListener('input', function(this: HTMLInputElement){
+        S.mass = +this.value;
+        document.getElementById('mass-val')!.textContent = S.mass + ' kg';
+        updateHints();
+        if (!sim.running) staticDraw(); else updateUI();
+      });
+      document.getElementById('sl-vset')!.addEventListener('input', function(this: HTMLInputElement){
+        S.vset = +this.value;
+        document.getElementById('vset-val')!.textContent = S.vset + ' V';
+        updateHints();
+        if (!sim.running) staticDraw(); else updateUI();
+      });
+      document.getElementById('sl-res')!.addEventListener('input', function(this: HTMLInputElement){
+        S.res = +this.value / 100;
+        document.getElementById('res-val')!.textContent = S.res.toFixed(2) + ' Ω';
+        updateHints();
+        if (!sim.running) staticDraw(); else updateUI();
+      });
+    }
+
+    /* ═══════════════════════════════════════
+       초기화
+    ═══════════════════════════════════════ */
+    document.getElementById('scene-wrap')!.addEventListener('click', startSim);
+    window.addEventListener('resize', () => { resizeCanvas(); if (!sim.running) staticDraw(); });
+
+    resizeCanvas();
+    bindSliders();
+    sim.v      = S.v0 / 3.6;
+    sim.v0_ms  = sim.v;
+    sim.regenWh     = 0;
+    sim.maxRegenWh  = 1;
+    updateHints();
+    staticDraw();
+    updateUI();
+  }, []);
+
+  return (
+    <div className="app" style={{display:'grid',gridTemplateRows:'52px 1fr',height:'100vh'}}>
+      <header style={{
+        background:'var(--bg2)',borderBottom:'1px solid var(--border)',
+        display:'flex',alignItems:'center',padding:'0 24px',gap:'16px'
+      }}>
+        <div style={{fontSize:'0.9rem',fontWeight:700,color:'var(--green)'}}>⚡ EV 회생제동 시뮬레이션</div>
+        <div style={{fontSize:'0.72rem',color:'var(--muted)'}}>초기 속도(독립변인) → 유도 기전력 → 회생 에너지(종속변인) &nbsp;|&nbsp; 캔버스 클릭 시작</div>
+      </header>
+      <div style={{display:'grid',gridTemplateColumns:'270px 1fr 230px',overflow:'hidden'}}>
+
+        {/* ═══ LEFT ═══ */}
+        <aside className="left">
+          <div>
+            <div className="panel-label"><span className="pill pill-ind">01 독립변인</span></div>
+            <div className="sl-block">
+              <div className="sl-row">
+                <span className="sl-name">초기 속도 V₀</span>
+                <span className="sl-val" id="v0-val" style={{color:'var(--blue)'}}>80 km/h</span>
+              </div>
+              <input type="range" className="blue" id="sl-v0" min="0" max="160" defaultValue="80" step="5"/>
+              <div className="sl-range-row"><span>0 km/h</span><span>160 km/h</span></div>
+              <div className="sl-hint" id="hint-v0"></div>
+            </div>
+          </div>
+
+          <div className="divider"></div>
+
+          <div>
+            <div className="panel-label"><span className="pill pill-ctrl">03 통제변인</span></div>
+
+            <div className="sl-block">
+              <div className="sl-row">
+                <span className="sl-name">차량 질량 m</span>
+                <span className="sl-val" id="mass-val" style={{color:'#b388ff'}}>1800 kg</span>
+              </div>
+              <input type="range" className="purple" id="sl-mass" min="500" max="5000" defaultValue="1800" step="100"/>
+              <div className="sl-range-row"><span>500 kg</span><span>5000 kg</span></div>
+              <div className="sl-hint" id="hint-mass"></div>
+            </div>
+
+            <div className="sl-block">
+              <div className="sl-row">
+                <span className="sl-name">기준 전압 V<sub>set</sub></span>
+                {/* 슬라이더 100~500 → V_set 100~500 V */}
+                <span className="sl-val" id="vset-val" style={{color:'#b388ff'}}>350 V</span>
+              </div>
+              <input type="range" className="purple" id="sl-vset" min="100" max="500" defaultValue="350" step="10"/>
+              <div className="sl-range-row"><span>100 V</span><span>500 V</span></div>
+              <div className="sl-hint" id="hint-vset"></div>
+            </div>
+
+            <div className="sl-block">
+              <div className="sl-row">
+                <span className="sl-name">회로 저항 R</span>
+                <span className="sl-val" id="res-val" style={{color:'#b388ff'}}>0.50 Ω</span>
+              </div>
+              {/* 슬라이더 1~200 → R = 0.01~2.00 Ω */}
+              <input type="range" className="purple" id="sl-res" min="1" max="200" defaultValue="50" step="1"/>
+              <div className="sl-range-row"><span>0.01 Ω</span><span>2.00 Ω</span></div>
+              <div className="sl-hint" id="hint-res"></div>
+            </div>
+          </div>
+
+          <div className="divider"></div>
+
+          {/* 수정된 공식 박스 — K_e·G_r·r 업데이트 */}
+          <div className="formula-box">
+            <div className="g">물리 계산식</div>
+            <div>V_emf = <span className="b">K_e × (v × G_r / r)</span></div>
+            <div>I &nbsp;&nbsp;&nbsp;= <span className="b">(V_emf − V_set) / R</span></div>
+            <div>P_out = <span className="b">V_set × I &nbsp;[W]</span></div>
+            <div>η &nbsp;&nbsp;&nbsp;= <span className="g">V_set / V_emf × 100 [%]</span></div>
+            <div>E &nbsp;&nbsp;&nbsp;= <span className="g">∫ P_out dt &nbsp;[Wh]</span></div>
+            <div style={{marginTop:'5px',fontSize:'0.61rem',color:'#3a3a5a'}}>
+              K_e=<span className="g">0.80</span> V·s/rad · G_r=8.2 · r=0.316 m<br/>
+              <span className="y">V_emf(80 km/h) ≈ 461 V</span><br/>
+              <span style={{color:'#5a5a7a'}}>← 실제 400V급 EV 모터와 정합</span>
+            </div>
+          </div>
+        </aside>
+
+        {/* ═══ CENTER ═══ */}
+        <main className="center">
+          <div className="scene-wrap" id="scene-wrap">
+            <canvas id="scene"></canvas>
+            <div className="click-hint" id="click-hint">▶ 클릭하여 시뮬레이션 시작</div>
+          </div>
+
+          <div className="energy-section">
+            <div style={{fontSize:'0.62rem',color:'var(--muted)',letterSpacing:'1px',textTransform:'uppercase',marginBottom:'2px'}}>에너지 흐름 (초기 V₀ 기준)</div>
+            <div className="flow-row">
+              <div className="flow-lbl">운동에너지 KE</div>
+              <div className="flow-track"><div className="flow-fill" id="bar-ke" style={{background:'#448aff',width:'100%'}}></div></div>
+              <div className="flow-num" id="num-ke" style={{color:'var(--blue)'}}>—</div>
+            </div>
+            <div className="flow-row">
+              <div className="flow-lbl">발전 전력 (V_emf×I)</div>
+              <div className="flow-track"><div className="flow-fill" id="bar-motor" style={{background:'#00c9a7',width:'0%'}}></div></div>
+              <div className="flow-num" id="num-motor" style={{color:'#00c9a7'}}>—</div>
+            </div>
+            <div className="flow-row">
+              <div className="flow-lbl">동손 손실 (I²R)</div>
+              <div className="flow-track"><div className="flow-fill" id="bar-loss" style={{background:'#ff5252',width:'0%'}}></div></div>
+              <div className="flow-num" id="num-loss" style={{color:'var(--red)'}}>—</div>
+            </div>
+            <div className="flow-row">
+              <div className="flow-lbl">배터리 저장 (V_set×I)</div>
+              <div className="flow-track"><div className="flow-fill" id="bar-bat" style={{background:'#00e676',width:'0%'}}></div></div>
+              <div className="flow-num" id="num-bat" style={{color:'var(--green)'}}>—</div>
+            </div>
+          </div>
+        </main>
+
+        {/* ═══ RIGHT ═══ */}
+        <aside className="right">
+          <div style={{fontSize:'0.62rem',fontWeight:700,letterSpacing:'1.5px',textTransform:'uppercase',color:'var(--muted)'}}>
+            <span className="pill" style={{background:'rgba(0,230,118,0.12)',color:'var(--green)',border:'1px solid rgba(0,230,118,0.25)'}}>02 종속변인</span>
+          </div>
+
+          <div className="kpi">
+            <div className="kpi-label">회생 에너지 E_stored<br/><span style={{color:'#3a3a5a',fontSize:'0.58rem'}}>(이번 제동 누적 — 0에서 시작)</span></div>
+            <div className="kpi-val" id="kpi-e" style={{color:'var(--green)'}}>0.000</div>
+            <div className="kpi-unit">Wh</div>
+          </div>
+          <div className="kpi">
+            <div className="kpi-label">최대 유도 기전력 V_max<br/>
+              <span style={{color:'#3a3a5a',fontSize:'0.58rem'}}>
+                K_e(0.80) × v × G_r(8.2) / r(0.316)
+              </span>
+            </div>
+            <div className="kpi-val" id="kpi-vmax" style={{color:'var(--blue)'}}>—</div>
+            <div className="kpi-unit">V (제동 시작 순간 · 400V급 EV 범주)</div>
+          </div>
+          <div className="kpi">
+            <div className="kpi-label">에너지 회수 효율 η</div>
+            <div className="kpi-val" id="kpi-eta" style={{color:'var(--yellow)'}}>—</div>
+            <div className="kpi-unit">% = V_set / V_emf × 100</div>
+          </div>
+
+          <div className="divider"></div>
+
+          <div className="kpi">
+            <div className="kpi-label">총 운동에너지 KE</div>
+            <div className="kpi-val" id="kpi-ke" style={{color:'var(--muted)',fontSize:'1rem'}}>—</div>
+            <div className="kpi-unit">Wh = ½mv²/3600</div>
+          </div>
+          <div className="kpi">
+            <div className="kpi-label">현재 유도 기전력 V_emf</div>
+            <div className="kpi-val" id="kpi-cemf" style={{color:'var(--muted)',fontSize:'1rem'}}>—</div>
+            <div className="kpi-unit">V (실시간 감소)</div>
+          </div>
+          <div className="kpi">
+            <div className="kpi-label">유도 전류 I</div>
+            <div className="kpi-val" id="kpi-cur" style={{color:'var(--muted)',fontSize:'1rem'}}>—</div>
+            <div className="kpi-unit">A = (V_emf−V_set)/R</div>
+          </div>
+
+          <div className="divider"></div>
+          <div id="charge-status">—</div>
+        </aside>
+      </div>
+    </div>
+  );
 }
-function drawSpeedGauge(H){
-  const cx=48, cy=H*.12, R=34;
-  const sa=Math.PI*.75, ea=Math.PI*2.25;
-  const pct = sim.v0_ms>0 ? Math.min(1,sim.v/sim.v0_ms) : Math.min(1,S.v0/120);
-  ctx.save();
-  ctx.fillStyle='rgba(13,13,22,0.80)'; ctx.strokeStyle='rgba(255,255,255,0.05)'; ctx.lineWidth=1;
-  ctx.beginPath(); ctx.arc(cx,cy,R+9,0,Math.PI*2); ctx.fill(); ctx.stroke();
-  ctx.beginPath(); ctx.arc(cx,cy,R,sa,ea);
-  ctx.strokeStyle='rgba(255,255,255,0.06)'; ctx.lineWidth=5; ctx.lineCap='round'; ctx.stroke();
-  const g=ctx.createLinearGradient(cx-R,cy,cx+R,cy);
-  g.addColorStop(0,'#448aff'); g.addColorStop(1,'#00e676');
-  ctx.beginPath(); ctx.arc(cx,cy,R,sa,sa+pct*(ea-sa));
-  ctx.strokeStyle=g; ctx.shadowColor='#448aff'; ctx.shadowBlur=9; ctx.stroke();
-  ctx.shadowBlur=0;
-  ctx.fillStyle='#e0e0f0'; ctx.font='bold 14px monospace';
-  ctx.textAlign='center'; ctx.textBaseline='middle';
-  ctx.fillText(Math.round(sim.v*3.6),cx,cy-1);
-  ctx.font='8px sans-serif'; ctx.fillStyle='rgba(170,170,210,0.5)';
-  ctx.fillText('km/h',cx,cy+13);
-  ctx.restore();
-}
-
-/* ═══════════════════════════════════════════
-   회생 에너지 게이지
-   • 시뮬 전 : 0% (sim.regenWh = 0)
-   • 시뮬 중 : rafLoop 에서 pOutAt()로 적산 → 채워짐
-   • 100% 기준 : 이론적 최대 회수량 (sim.maxRegenWh)
-═══════════════════════════════════════════ */
-function drawRegenGauge(W,H){
-  const bw=28, bh=80;
-  const bx=W-60, by=H*0.06;
-
-  // 0~1 진행률
-  const pct = Math.min(1, sim.regenWh / sim.maxRegenWh);
-
-  /* 배경 패널 */
-  ctx.save();
-  ctx.fillStyle='rgba(13,13,22,0.82)'; ctx.strokeStyle='rgba(255,255,255,0.05)'; ctx.lineWidth=1;
-  ctx.beginPath(); rr(ctx,bx-14,by-26,bw+28,bh+52,10); ctx.fill(); ctx.stroke();
-
-  /* 라벨 */
-  ctx.fillStyle='rgba(0,230,118,0.60)'; ctx.font='bold 8px sans-serif'; ctx.textAlign='center';
-  ctx.fillText('회생',  bx+bw/2, by-14);
-  ctx.fillText('에너지',bx+bw/2, by-4);
-
-  /* 캡 */
-  ctx.fillStyle='rgba(255,255,255,0.08)';
-  ctx.beginPath(); rr(ctx,bx+bw*.2,by-3,bw*.6,5,2); ctx.fill();
-
-  /* 케이스 */
-  ctx.strokeStyle='rgba(255,255,255,0.10)'; ctx.lineWidth=1.5;
-  ctx.fillStyle='#0e0e1a';
-  ctx.beginPath(); rr(ctx,bx,by,bw,bh,4); ctx.fill(); ctx.stroke();
-
-  /* 채워지는 부분 */
-  if (pct > 0) {
-    const fillH = bh * pct;
-    const fillY = by + bh - fillH;
-    const fg = ctx.createLinearGradient(0,fillY,0,by+bh);
-    fg.addColorStop(0,'#00e676'); fg.addColorStop(1,'#00c853');
-    ctx.fillStyle=fg; ctx.shadowColor='#00e676'; ctx.shadowBlur=8;
-    ctx.beginPath(); rr(ctx,bx+2,fillY,bw-4,fillH,3); ctx.fill();
-  }
-  ctx.shadowBlur=0;
-
-  /* % 숫자 */
-  ctx.fillStyle='#e0e0f0'; ctx.font='bold 10px monospace';
-  ctx.textAlign='center'; ctx.textBaseline='alphabetic';
-  ctx.fillText((pct*100).toFixed(0)+'%', bx+bw/2, by+bh+16);
-
-  /* Wh 수치 */
-  ctx.font='7.5px monospace'; ctx.fillStyle='rgba(0,230,118,0.65)';
-  ctx.fillText(sim.regenWh.toFixed(2)+'Wh', bx+bw/2, by+bh+27);
-
-  ctx.restore();
-}
-
-function drawOverlayLabel(W,H,roadY){
-  if(!sim.running||sim.v<0.3) return;
-  const carCX=W*0.42;
-  const emf=emfAt(sim.v), eta=etaAt(sim.v);
-  ctx.save(); ctx.textAlign='left';
-  ctx.fillStyle='rgba(68,138,255,0.85)'; ctx.font='bold 11px monospace';
-  ctx.fillText(`V_emf: ${emf.toFixed(1)} V  η: ${eta.toFixed(0)}%`,carCX+W*.08,roadY-H*.12);
-  if(emf>S.vset){
-    ctx.fillStyle='rgba(0,230,118,0.75)'; ctx.font='10px sans-serif';
-    ctx.fillText('⚡ 회생 충전 중',carCX+W*.08,roadY-H*.065);
-  } else {
-    ctx.fillStyle='rgba(255,82,82,0.75)'; ctx.font='10px sans-serif';
-    ctx.fillText('⚠ V_emf < V_set — 충전 불가',carCX+W*.08,roadY-H*.065);
-  }
-  ctx.restore();
-}
-
-/* ═══ UI UPDATE ═══ */
-function updateUI(){
-  const v_cur  = sim.running ? sim.v : S.v0/3.6;
-  const KE     = keNow();
-  const Vmax   = vmaxNow();
-  const eta_cur= etaAt(v_cur);
-  const emf_cur= emfAt(v_cur);
-  const I_cur  = currentAt(v_cur);
-
-  setText('kpi-e',    sim.regenWh.toFixed(3));
-  setText('kpi-vmax', Vmax.toFixed(2));
-  setText('kpi-eta',  eta_cur.toFixed(1));
-  setText('kpi-ke',   KE.toFixed(3));
-  setText('kpi-cemf', emf_cur.toFixed(2));
-  setText('kpi-cur',  I_cur.toFixed(2));
-
-  /* 에너지 흐름 바 */
-  if(KE>0){
-    const emf0 = vmaxNow();
-    const I0   = currentAt(S.v0/3.6);
-    const P_in = emf0 * I0;
-    const P_ls = I0*I0*S.res;
-    const P_ot = pOutAt(S.v0/3.6);
-    const lf   = P_in>0 ? P_ls/P_in : 0;
-    const of_  = P_in>0 ? P_ot/P_in : 0;
-    setBar('bar-ke',   100,     'num-ke',   KE,     '#448aff');
-    setBar('bar-motor',emfAt(S.v0/3.6)>S.vset?100:0,'num-motor',KE,'#00c9a7');
-    setBar('bar-loss', lf*100,  'num-loss', KE*lf,  '#ff5252');
-    setBar('bar-bat',  of_*100, 'num-bat',  KE*of_, '#00e676');
-  }
-
-  /* 충전 가능 여부 */
-  const el=document.getElementById('charge-status');
-  if(Vmax>S.vset){
-    el.textContent=`✅ 충전 가능  V_emf(${Vmax.toFixed(1)}V) > V_set(${S.vset}V)`;
-    el.style.cssText='background:rgba(0,230,118,0.10);color:#00e676;border:1px solid rgba(0,230,118,0.30);padding:9px 12px;border-radius:8px;font-size:0.71rem;font-weight:600;text-align:center;line-height:1.5;';
-  }else{
-    el.textContent=`❌ 충전 불가  V_emf(${Vmax.toFixed(1)}V) ≤ V_set(${S.vset}V)`;
-    el.style.cssText='background:rgba(255,82,82,0.10);color:#ff5252;border:1px solid rgba(255,82,82,0.30);padding:9px 12px;border-radius:8px;font-size:0.71rem;font-weight:600;text-align:center;line-height:1.5;';
-  }
-}
-
-function setText(id,v){const e=document.getElementById(id);if(e)e.textContent=v;}
-function setBar(bid,pct,nid,val,col){
-  const b=document.getElementById(bid),n=document.getElementById(nid);
-  if(b){b.style.width=Math.max(0,Math.min(100,pct)).toFixed(1)+'%';b.style.background=col;}
-  if(n){n.textContent=val.toFixed(3)+' Wh';n.style.color=col;}
-}
-
-/* ═══ HELPER ═══ */
-function rr(ctx,x,y,w,h,r){
-  ctx.beginPath();
-  ctx.moveTo(x+r,y);ctx.lineTo(x+w-r,y);ctx.quadraticCurveTo(x+w,y,x+w,y+r);
-  ctx.lineTo(x+w,y+h-r);ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h);
-  ctx.lineTo(x+r,y+h);ctx.quadraticCurveTo(x,y+h,x,y+h-r);
-  ctx.lineTo(x,y+r);ctx.quadraticCurveTo(x,y,x+r,y);
-  ctx.closePath();
-}
-
-/* ═══ SLIDERS ═══ */
-function updateHints(){
-  const emf0 = vmaxNow();
-  document.getElementById('hint-v0').textContent   = `V_emf=${emf0.toFixed(1)}V | V_set=${S.vset}V → ${emf0>S.vset?'충전 가능 ✅':'충전 불가 ❌'}`;
-  document.getElementById('hint-vset').textContent  = `V_set=${S.vset}V | V_emf=${emf0.toFixed(1)}V → ${emf0>S.vset?'충전 가능 ✅':'충전 불가 ❌'}`;
-  document.getElementById('hint-res').textContent   = `R=${S.res.toFixed(2)}Ω → η=${etaAt(S.v0/3.6).toFixed(1)}%`;
-  document.getElementById('hint-mass').textContent  = `m=${S.mass}kg → KE=${keNow().toFixed(3)}Wh`;
-}
-
-function bindSliders(){
-  document.getElementById('sl-v0').addEventListener('input',function(){
-    S.v0=+this.value;
-    document.getElementById('v0-val').textContent=S.v0+' km/h';
-    updateHints(); if(!sim.running) staticDraw(); else updateUI();
-  });
-  document.getElementById('sl-mass').addEventListener('input',function(){
-    S.mass=+this.value;
-    document.getElementById('mass-val').textContent=S.mass+' kg';
-    updateHints(); if(!sim.running) staticDraw(); else updateUI();
-  });
-  document.getElementById('sl-vset').addEventListener('input',function(){
-    S.vset=+this.value;
-    document.getElementById('vset-val').textContent=S.vset+' V';
-    updateHints(); if(!sim.running) staticDraw(); else updateUI();
-  });
-  document.getElementById('sl-res').addEventListener('input',function(){
-    // 슬라이더 값 5~50 → 0.05~0.50 Ω
-    S.res=+this.value/100;
-    document.getElementById('res-val').textContent=S.res.toFixed(2)+' Ω';
-    updateHints(); if(!sim.running) staticDraw(); else updateUI();
-  });
-}
-
-/* ═══ INIT ═══ */
-document.getElementById('scene-wrap').addEventListener('click', startSim);
-window.addEventListener('resize',()=>{ resizeCanvas(); if(!sim.running) staticDraw(); });
-window.addEventListener('DOMContentLoaded',()=>{
-  resizeCanvas(); bindSliders();
-  sim.v=S.v0/3.6; sim.v0_ms=sim.v; sim.regenWh=0; sim.maxRegenWh=1;
-  updateHints(); staticDraw(); updateUI();
-});
-</script>
-</body>
-</html>
