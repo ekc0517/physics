@@ -1,228 +1,1044 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MAIN INDEX</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: 'Arial Black', Arial, sans-serif;
-            background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
-            min-height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            padding: 20px;
-            position: relative;
-            overflow: hidden;
-        }
-
-        body::before {
-            content: '';
-            position: absolute;
-            width: 200%;
-            height: 200%;
-            background: 
-                repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(255,255,255,.02) 10px, rgba(255,255,255,.02) 20px);
-            animation: slide 20s linear infinite;
-        }
-
-        @keyframes slide {
-            0% { transform: translate(0, 0); }
-            100% { transform: translate(50px, 50px); }
-        }
-
-        .container {
-            position: relative;
-            z-index: 1;
-            text-align: center;
-        }
-
-        h1 {
-            color: #ff3333;
-            font-size: 3.5em;
-            margin-bottom: 20px;
-            text-transform: uppercase;
-            letter-spacing: 5px;
-            text-shadow: 
-                0 0 10px rgba(255, 51, 51, 0.5),
-                0 0 20px rgba(255, 51, 51, 0.3),
-                3px 3px 0 rgba(0, 0, 0, 0.8);
-            animation: pulse 2s ease-in-out infinite;
-        }
-
-        @keyframes pulse {
-            0%, 100% { text-shadow: 
-                0 0 10px rgba(255, 51, 51, 0.5),
-                0 0 20px rgba(255, 51, 51, 0.3),
-                3px 3px 0 rgba(0, 0, 0, 0.8);
-            }
-            50% { text-shadow: 
-                0 0 20px rgba(255, 51, 51, 0.8),
-                0 0 30px rgba(255, 51, 51, 0.5),
-                3px 3px 0 rgba(0, 0, 0, 0.8);
-            }
-        }
-
-        .subtitle {
-            color: #999;
-            font-size: 1.2em;
-            margin-bottom: 50px;
-            letter-spacing: 3px;
-            text-transform: uppercase;
-        }
-
-        .card-container {
-            display: flex;
-            gap: 40px;
-            flex-wrap: wrap;
-            justify-content: center;
-        }
-
-        .card {
-            width: 300px;
-            height: 200px;
-            background: linear-gradient(145deg, #2a2a2a, #1f1f1f);
-            border: 2px solid #333;
-            border-radius: 10px;
-            position: relative;
-            overflow: hidden;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            box-shadow: 
-                0 10px 30px rgba(0, 0, 0, 0.8),
-                inset 0 1px 0 rgba(255, 255, 255, 0.1);
-        }
-
-        .card::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: -100%;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255, 51, 51, 0.3), transparent);
-            transition: left 0.5s;
-        }
-
-        .card:hover::before {
-            left: 100%;
-        }
-
-        .card:hover {
-            transform: translateY(-10px) scale(1.05);
-            border-color: #ff3333;
-            box-shadow: 
-                0 15px 50px rgba(255, 51, 51, 0.4),
-                0 0 30px rgba(255, 51, 51, 0.2),
-                inset 0 1px 0 rgba(255, 255, 255, 0.2);
-        }
-
-        .card a {
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            width: 100%;
-            height: 100%;
-            text-decoration: none;
-            color: #fff;
-            position: relative;
-            z-index: 2;
-        }
-
-        .card-icon {
-            font-size: 4em;
-            margin-bottom: 15px;
-            transition: all 0.3s ease;
-        }
-
-        .card:nth-child(1) .card-icon {
-            color: #ff3333;
-            text-shadow: 0 0 20px rgba(255, 51, 51, 0.5);
-        }
-
-        .card:nth-child(2) .card-icon {
-            color: #ffd700;
-            text-shadow: 0 0 20px rgba(255, 215, 0, 0.5);
-        }
-
-        .card:hover .card-icon {
-            transform: scale(1.2) rotate(5deg);
-        }
-
-        .card-title {
-            font-size: 1.8em;
-            font-weight: bold;
-            text-transform: uppercase;
-            letter-spacing: 3px;
-            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
-        }
-
-        .card-subtitle {
-            font-size: 0.9em;
-            color: #999;
-            margin-top: 5px;
-            letter-spacing: 1px;
-        }
-
-        /* 배경 장식 요소 */
-        .bg-decoration {
-            position: absolute;
-            width: 300px;
-            height: 300px;
-            border: 2px solid rgba(255, 51, 51, 0.1);
-            border-radius: 50%;
-            z-index: 0;
-        }
-
-        .bg-decoration:nth-child(1) {
-            top: -150px;
-            left: -150px;
-            animation: rotate 20s linear infinite;
-        }
-
-        .bg-decoration:nth-child(2) {
-            bottom: -150px;
-            right: -150px;
-            animation: rotate 15s linear infinite reverse;
-        }
-
-        @keyframes rotate {
-            from { transform: rotate(0deg); }
-            to { transform: rotate(360deg); }
-        }
-
-        @media (max-width: 768px) {
-            h1 {
-                font-size: 2em;
-            }
-            .card {
-                width: 100%;
-                max-width: 300px;
-            }
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>자동차 코너링 안정성 & 구심력 한계 3D 시뮬레이션</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #0a0a1a; color: #e0e8ff; font-family: 'Segoe UI', sans-serif; overflow: hidden; }
+  #canvas-container { position: fixed; top: 0; left: 0; width: 100%; height: 100%; }
+  canvas { display: block; }
+  #hud { position: fixed; top: 0; left: 0; width: 100%; pointer-events: none; z-index: 10; }
+  #topbar {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 10px 16px;
+    background: linear-gradient(180deg, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0) 100%);
+  }
+  #title-area h1 { font-size: 15px; font-weight: 700; color: #7dd3fc; letter-spacing: 0.5px; }
+  #title-area p  { font-size: 11px; color: #94a3b8; margin-top: 2px; }
+  #physics-panel {
+    position: fixed; top: 70px; left: 12px; z-index: 10;
+    background: rgba(10,15,40,0.88); border: 1px solid rgba(99,179,237,0.25);
+    border-radius: 12px; padding: 14px 16px; width: 230px;
+    backdrop-filter: blur(8px);
+  }
+  #physics-panel h3 { font-size: 12px; color: #7dd3fc; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 1px; }
+  .phys-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; font-size: 12px; }
+  .phys-label { color: #94a3b8; }
+  .phys-val   { font-weight: 700; font-size: 13px; }
+  .green  { color: #4ade80; }
+  .yellow { color: #facc15; }
+  .red    { color: #f87171; }
+  .orange { color: #fb923c; }
+  .bar-wrap { width: 100%; background: rgba(255,255,255,0.08); border-radius: 4px; height: 8px; margin-top: 8px; overflow: hidden; }
+  .bar-fill  { height: 100%; border-radius: 4px; transition: width 0.1s, background 0.1s; }
+  #status-badge {
+    margin-top: 10px; padding: 6px 10px; border-radius: 8px;
+    font-size: 12px; font-weight: 700; text-align: center; transition: all 0.3s;
+  }
+  /* Steering indicator */
+  #steer-panel {
+    position: fixed; top: 70px; left: 254px; z-index: 10;
+    background: rgba(10,15,40,0.88); border: 1px solid rgba(99,179,237,0.25);
+    border-radius: 12px; padding: 12px 14px; width: 130px;
+    backdrop-filter: blur(8px); text-align: center;
+  }
+  #steer-panel h3 { font-size: 11px; color: #7dd3fc; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 1px; }
+  #steer-wheel-canvas { display: block; margin: 0 auto; }
+  #steer-angle-val { font-size: 13px; font-weight: 700; color: #facc15; margin-top: 6px; }
+  #steer-angle-label { font-size: 10px; color: #64748b; margin-top: 2px; }
+  #controls-panel {
+    position: fixed; top: 70px; right: 12px; z-index: 10;
+    background: rgba(10,15,40,0.88); border: 1px solid rgba(99,179,237,0.25);
+    border-radius: 12px; padding: 14px 16px; width: 220px;
+    backdrop-filter: blur(8px);
+  }
+  #controls-panel h3 { font-size: 12px; color: #7dd3fc; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 1px; }
+  .ctrl-group { margin-bottom: 12px; }
+  .ctrl-label { font-size: 11px; color: #94a3b8; margin-bottom: 4px; display: flex; justify-content: space-between; }
+  .ctrl-val   { color: #e0e8ff; font-weight: 600; }
+  input[type=range] {
+    width: 100%; height: 4px; -webkit-appearance: none; appearance: none;
+    background: rgba(255,255,255,0.15); border-radius: 4px; outline: none; cursor: pointer;
+    pointer-events: all;
+  }
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none; width: 14px; height: 14px; border-radius: 50%;
+    background: #7dd3fc; cursor: pointer; border: 2px solid #0a0a1a;
+  }
+  #cam-buttons {
+    position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+    display: flex; gap: 8px; z-index: 10; pointer-events: all;
+  }
+  .cam-btn {
+    padding: 8px 16px; border-radius: 20px; border: 1px solid rgba(125,211,252,0.4);
+    background: rgba(10,15,40,0.85); color: #94a3b8; font-size: 12px; cursor: pointer;
+    transition: all 0.2s; backdrop-filter: blur(6px); white-space: nowrap;
+  }
+  .cam-btn:hover { border-color: #7dd3fc; color: #7dd3fc; }
+  .cam-btn.active { background: rgba(56,189,248,0.2); border-color: #38bdf8; color: #38bdf8; font-weight: 700; }
+  #theory-panel {
+    position: fixed; bottom: 70px; right: 12px; z-index: 10;
+    background: rgba(10,15,40,0.88); border: 1px solid rgba(99,179,237,0.25);
+    border-radius: 12px; padding: 14px 16px; width: 220px;
+    backdrop-filter: blur(8px); font-size: 11px; line-height: 1.7;
+  }
+  #theory-panel h3 { font-size: 12px; color: #7dd3fc; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 1px; }
+  .formula { background: rgba(255,255,255,0.06); border-radius: 6px; padding: 6px 8px; margin-bottom: 6px; color: #c7d2fe; font-family: monospace; font-size: 12px; }
+  .formula span { color: #f9a8d4; }
+  #legend {
+    position: fixed; bottom: 70px; left: 12px; z-index: 10;
+    background: rgba(10,15,40,0.88); border: 1px solid rgba(99,179,237,0.25);
+    border-radius: 12px; padding: 12px 14px; width: 200px;
+    backdrop-filter: blur(8px);
+  }
+  #legend h3 { font-size: 12px; color: #7dd3fc; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 1px; }
+  .legend-item { display: flex; align-items: center; gap: 8px; font-size: 11px; color: #94a3b8; margin-bottom: 5px; }
+  .legend-dot  { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+  #skid-info {
+    position: fixed; top: 50%; left: 50%; transform: translate(-50%,-50%);
+    z-index: 20; text-align: center; pointer-events: none; display: none;
+  }
+  #skid-info .alert-box {
+    background: rgba(220,38,38,0.9); border: 2px solid #f87171;
+    border-radius: 12px; padding: 16px 24px;
+    animation: pulse 0.5s ease-in-out infinite alternate;
+  }
+  #skid-info .alert-box h2 { font-size: 18px; font-weight: 800; color: #fff; }
+  #skid-info .alert-box p  { font-size: 12px; color: #fecaca; margin-top: 4px; }
+  @keyframes pulse { from { box-shadow: 0 0 10px rgba(248,113,113,0.5); } to { box-shadow: 0 0 30px rgba(248,113,113,0.9); } }
+  #speed-dial {
+    position: fixed; bottom: 70px; left: 50%; transform: translateX(-50%);
+    z-index: 10; pointer-events: none;
+    background: rgba(10,15,40,0.85); border: 1px solid rgba(99,179,237,0.2);
+    border-radius: 50%; width: 80px; height: 80px; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; backdrop-filter: blur(6px);
+  }
+  #speed-dial .spd-val { font-size: 20px; font-weight: 800; color: #7dd3fc; }
+  #speed-dial .spd-unit { font-size: 9px; color: #64748b; }
+  #view-label {
+    position: fixed; top: 60px; left: 50%; transform: translateX(-50%);
+    z-index: 10; pointer-events: none;
+    background: rgba(10,15,40,0.7); border: 1px solid rgba(99,179,237,0.2);
+    border-radius: 20px; padding: 4px 14px; font-size: 11px; color: #7dd3fc;
+  }
+  /* Zoom hint */
+  #zoom-hint {
+    position: fixed; top: 92px; left: 50%; transform: translateX(-50%);
+    z-index: 10; pointer-events: none;
+    background: rgba(10,15,40,0.65); border: 1px solid rgba(99,179,237,0.15);
+    border-radius: 14px; padding: 3px 12px; font-size: 10px; color: #475569;
+    transition: opacity 0.4s;
+  }
+  /* FP crosshair */
+  #crosshair {
+    position: fixed; top: 50%; left: 50%; transform: translate(-50%,-50%);
+    z-index: 10; pointer-events: none; display: none;
+    width: 20px; height: 20px;
+  }
+  #crosshair::before, #crosshair::after {
+    content: ''; position: absolute; background: rgba(255,255,255,0.5);
+  }
+  #crosshair::before { width: 2px; height: 100%; left: 50%; transform: translateX(-50%); }
+  #crosshair::after  { height: 2px; width: 100%; top: 50%; transform: translateY(-50%); }
+  /* FP overlay — speed lines */
+  #fp-overlay {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    pointer-events: none; z-index: 9; display: none;
+  }
+  /* G-meter */
+  #g-meter {
+    position: fixed; bottom: 165px; left: 50%; transform: translateX(-50%);
+    z-index: 10; pointer-events: none;
+    background: rgba(10,15,40,0.85); border: 1px solid rgba(99,179,237,0.2);
+    border-radius: 10px; padding: 6px 14px; font-size: 11px; color: #a78bfa;
+    backdrop-filter: blur(6px); display: none; text-align: center;
+  }
+  #g-meter .gval { font-size: 18px; font-weight: 800; }
+</style>
 </head>
 <body>
-    <div class="bg-decoration"></div>
-    <div class="bg-decoration"></div>
-    
-    <div class="container">
-        <h1>⚡ Physics ⚡</h1>
-        <div class="subtitle">Choose Your Destination</div>
-        
-        <div class="card-container">
-            <div class="card">
-                <a href="Regenerative.html">
-                    <div class="card-icon">♔</div>
-                    <div class="card-title">Regenerative</div>
-                    <div class="card-subtitle">Enter Here</div>
-                </a>
-            </div>
+<div id="canvas-container"><canvas id="mainCanvas"></canvas></div>
+
+<!-- HUD -->
+<div id="hud">
+  <div id="topbar">
+    <div id="title-area">
+      <h1>🚗 자동차 코너링 안정성 &amp; 구심력 한계 분석</h1>
+      <p>차량 원운동 유지 조건 및 마찰력 한계 물리 시뮬레이션</p>
+    </div>
+  </div>
+</div>
+
+<div id="view-label">📷 시점: 탑뷰 (위에서)</div>
+<div id="zoom-hint">🖱 휠: 줌 인/아웃</div>
+
+<!-- Physics readout -->
+<div id="physics-panel">
+  <h3>📐 실시간 물리량</h3>
+  <div class="phys-row"><span class="phys-label">차량 속도 (v)</span><span class="phys-val green" id="pv">0.0 m/s</span></div>
+  <div class="phys-row"><span class="phys-label">곡률 반경 (R)</span><span class="phys-val" id="pr" style="color:#c7d2fe">0 m</span></div>
+  <div class="phys-row"><span class="phys-label">필요 구심력 (Fc)</span><span class="phys-val orange" id="pfc">0.0 N</span></div>
+  <div class="phys-row"><span class="phys-label">최대 마찰력 (Ff)</span><span class="phys-val yellow" id="pff">0.0 N</span></div>
+  <div class="phys-row"><span class="phys-label">구심가속도</span><span class="phys-val" id="pac" style="color:#a78bfa">0.00 g</span></div>
+  <div class="phys-row"><span class="phys-label">임계 속도 (v_max)</span><span class="phys-val" id="pvmax" style="color:#34d399">0.0 m/s</span></div>
+  <div class="bar-wrap"><div class="bar-fill" id="force-bar" style="width:0%;background:#4ade80;"></div></div>
+  <div style="font-size:10px;color:#475569;margin-top:3px;text-align:right">구심력 / 최대마찰력 비율</div>
+  <div id="status-badge" style="background:rgba(74,222,128,0.15);border:1px solid #4ade80;color:#4ade80;">✅ 안전: 원운동 유지 중</div>
+</div>
+
+<!-- Steering wheel indicator -->
+<div id="steer-panel">
+  <h3>🔄 조향각</h3>
+  <canvas id="steer-wheel-canvas" width="90" height="90"></canvas>
+  <div id="steer-angle-val">0.0°</div>
+  <div id="steer-angle-label">스티어링 휠</div>
+</div>
+
+<!-- Controls -->
+<div id="controls-panel">
+  <h3>⚙️ 조건 설정</h3>
+  <div class="ctrl-group">
+    <div class="ctrl-label"><span>진입 속도</span><span class="ctrl-val" id="lv">10 m/s</span></div>
+    <input type="range" id="sv" min="2" max="40" value="10" step="0.5">
+  </div>
+  <div class="ctrl-group">
+    <div class="ctrl-label"><span>곡률 반경</span><span class="ctrl-val" id="lr">50 m</span></div>
+    <input type="range" id="sr" min="15" max="150" value="50" step="1">
+  </div>
+  <div class="ctrl-group">
+    <div class="ctrl-label"><span>정지 마찰계수 (μ)</span><span class="ctrl-val" id="lmu">0.70</span></div>
+    <input type="range" id="smu" min="0.15" max="1.20" value="0.70" step="0.01">
+  </div>
+  <div class="ctrl-group">
+    <div class="ctrl-label"><span>차량 질량</span><span class="ctrl-val" id="lmass">1200 kg</span></div>
+    <input type="range" id="smass" min="500" max="3000" value="1200" step="50">
+  </div>
+  <div style="display:flex;gap:6px;margin-top:4px;pointer-events:all;">
+    <button id="btn-reset" style="flex:1;padding:6px;border-radius:8px;background:rgba(99,179,237,0.15);border:1px solid rgba(99,179,237,0.4);color:#7dd3fc;font-size:11px;cursor:pointer;">↺ 리셋</button>
+    <button id="btn-auto"  style="flex:1;padding:6px;border-radius:8px;background:rgba(251,146,60,0.15);border:1px solid rgba(251,146,60,0.4);color:#fb923c;font-size:11px;cursor:pointer;">▶ 속도증가</button>
+  </div>
+</div>
+
+<!-- Theory -->
+<div id="theory-panel">
+  <h3>📖 이론식</h3>
+  <div class="formula">Fc = <span>mv²/R</span></div>
+  <div class="formula">Ff_max = <span>μmg</span></div>
+  <div class="formula">v_max = <span>√(μgR)</span></div>
+  <div class="formula">δ = <span>L/R</span> (애커만)</div>
+  <div style="font-size:10px;color:#64748b;line-height:1.6;margin-top:6px;">
+    Fc ≤ Ff_max → 원운동 유지<br>
+    Fc > Ff_max → 궤도 이탈 (슬라이드)<br>
+    δ = 조향각, L = 축거(휠베이스)<br>
+    g = 9.8 m/s²
+  </div>
+</div>
+
+<!-- Legend -->
+<div id="legend">
+  <h3>범례</h3>
+  <div class="legend-item"><div class="legend-dot" style="background:#4ade80;"></div>차량 (안전 주행)</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#f87171;"></div>차량 (궤도 이탈)</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#38bdf8;"></div>구심력 벡터</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#fb923c;"></div>원심력(관성) 벡터</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#facc15;"></div>속도 벡터</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#a78bfa;"></div>마찰 한계선</div>
+</div>
+
+<!-- Speed dial -->
+<div id="speed-dial">
+  <div class="spd-val" id="dial-spd">0</div>
+  <div class="spd-unit">m/s</div>
+</div>
+
+<!-- G-meter (FP only) -->
+<div id="g-meter">
+  <div>횡G (Lateral G)</div>
+  <div class="gval" id="g-val">0.00 g</div>
+</div>
+
+<!-- Skid alert -->
+<div id="skid-info">
+  <div class="alert-box">
+    <h2>⚠️ 궤도 이탈!</h2>
+    <p>구심력 > 최대 마찰력<br>차량이 접선 방향으로 미끄러집니다</p>
+  </div>
+</div>
+
+<!-- FP crosshair -->
+<div id="crosshair"></div>
+
+<!-- FP speed overlay canvas -->
+<canvas id="fp-overlay"></canvas>
+
+<!-- Keyboard guide -->
+<div style="position:fixed;bottom:120px;left:50%;transform:translateX(-50%);z-index:10;pointer-events:none;
+  background:rgba(10,15,40,0.75);border:1px solid rgba(99,179,237,0.15);border-radius:10px;
+  padding:6px 16px;font-size:10px;color:#475569;display:flex;gap:14px;backdrop-filter:blur(4px);">
+  <span><kbd style="background:rgba(255,255,255,0.1);padding:1px 5px;border-radius:3px;">V</kbd> 시점변경</span>
+  <span><kbd style="background:rgba(255,255,255,0.1);padding:1px 5px;border-radius:3px;">↑↓</kbd> 속도조절</span>
+  <span><kbd style="background:rgba(255,255,255,0.1);padding:1px 5px;border-radius:3px;">Space</kbd> 자동가속</span>
+  <span><kbd style="background:rgba(255,255,255,0.1);padding:1px 5px;border-radius:3px;">R</kbd> 리셋</span>
+  <span><kbd style="background:rgba(255,255,255,0.1);padding:1px 5px;border-radius:3px;">🖱휠</kbd> 줌</span>
+</div>
+
+<!-- Camera buttons -->
+<div id="cam-buttons">
+  <button class="cam-btn active" data-cam="top">🛸 탑뷰</button>
+  <button class="cam-btn" data-cam="chase">🎮 카트뷰</button>
+  <button class="cam-btn" data-cam="fp">👁️ 1인칭</button>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+// ═══════════════════════════════════════════════
+// Constants & State
+// ═══════════════════════════════════════════════
+const G_CONST = 9.8;
+const SCALE   = 0.5;          // 1 world-unit = 2 m
+const WHEELBASE = 2.6;        // metres (축거)
+
+let state = {
+  speed: 10, radius: 50, mu: 0.70, mass: 1200,
+  angle: 0,
+  isOff: false, offPos: null, offVelDir: null, offSpeed: 0,
+  autoAccel: false,
+  t: 0,
+  steerAngleDeg: 0,   // current visual steering angle (degrees, smoothed)
+  steerTarget: 0,
+};
+
+// ── Zoom state ──────────────────────────────────
+let zoomTop   = 1.0;   // multiplier for top-view height
+let zoomChase = 1.0;   // multiplier for chase cam distance
+const ZOOM_MIN = 0.25, ZOOM_MAX = 4.0;
+
+// ═══════════════════════════════════════════════
+// Three.js setup
+// ═══════════════════════════════════════════════
+const canvas3d   = document.getElementById('mainCanvas');
+const renderer   = new THREE.WebGLRenderer({ canvas: canvas3d, antialias: true });
+renderer.setPixelRatio(window.devicePixelRatio);
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type    = THREE.PCFSoftShadowMap;
+renderer.toneMapping       = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.0;
+
+const scene  = new THREE.Scene();
+scene.background = new THREE.Color(0x0d1117);
+scene.fog        = new THREE.FogExp2(0x0d1117, 0.004);
+
+const camera = new THREE.PerspectiveCamera(60, 1, 0.1, 2000);
+let camMode  = 'top';
+
+// ── FP overlay canvas ───────────────────────────
+const fpCvs = document.getElementById('fp-overlay');
+const fpCtx = fpCvs.getContext('2d');
+fpCvs.style.position = 'fixed';
+fpCvs.style.top = '0'; fpCvs.style.left = '0';
+fpCvs.style.width = '100%'; fpCvs.style.height = '100%';
+fpCvs.style.pointerEvents = 'none';
+fpCvs.style.zIndex = '9';
+
+function resizeAll() {
+  const w = window.innerWidth, h = window.innerHeight;
+  renderer.setSize(w, h);
+  camera.aspect = w / h;
+  camera.updateProjectionMatrix();
+  fpCvs.width = w; fpCvs.height = h;
+}
+window.addEventListener('resize', resizeAll);
+resizeAll();
+
+// ── Lighting ────────────────────────────────────
+scene.add(new THREE.AmbientLight(0x1a2040, 1.5));
+const dirLight = new THREE.DirectionalLight(0xffffff, 1.8);
+dirLight.position.set(80, 120, 60);
+dirLight.castShadow = true;
+dirLight.shadow.mapSize.set(2048, 2048);
+Object.assign(dirLight.shadow.camera, { near:1, far:400, left:-200, right:200, top:200, bottom:-200 });
+scene.add(dirLight);
+const pl1 = new THREE.PointLight(0x4488ff, 2, 200); pl1.position.set(-50, 40, -50); scene.add(pl1);
+const pl2 = new THREE.PointLight(0xff6644, 1.5, 150); pl2.position.set(60, 30, 60); scene.add(pl2);
+
+// ═══════════════════════════════════════════════
+// Scene objects
+// ═══════════════════════════════════════════════
+// Ground
+const ground = new THREE.Mesh(
+  new THREE.PlaneGeometry(600, 600),
+  new THREE.MeshLambertMaterial({ color: 0x1a1f2e })
+);
+ground.rotation.x = -Math.PI / 2; ground.receiveShadow = true;
+scene.add(ground);
+scene.add(new THREE.GridHelper(500, 50, 0x1e2840, 0x1e2840));
+
+// Stars
+(function buildStars() {
+  const verts = [];
+  for (let i = 0; i < 2000; i++)
+    verts.push((Math.random()-0.5)*1000, 50+Math.random()*400, (Math.random()-0.5)*1000);
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.Float32BufferAttribute(verts, 3));
+  scene.add(new THREE.Points(geo, new THREE.PointsMaterial({ color:0xffffff, size:0.6, opacity:0.6, transparent:true })));
+})();
+
+// Environment
+(function buildEnvironment() {
+  const standMat  = new THREE.MeshLambertMaterial({ color: 0x2d4060 });
+  const trunkMat  = new THREE.MeshLambertMaterial({ color: 0x5c3d1e });
+  const leafMat   = new THREE.MeshLambertMaterial({ color: 0x2d6b2d });
+  [[120,0,0],[-120,0,0],[0,0,120],[0,0,-120],[90,0,90],[-90,0,90],[90,0,-90],[-90,0,-90]].forEach(([x,,z]) => {
+    const m = new THREE.Mesh(new THREE.BoxGeometry(12+Math.random()*8, 4+Math.random()*6, 6), standMat);
+    m.position.set(x+(Math.random()-.5)*20, 2, z+(Math.random()-.5)*20);
+    m.castShadow = true; scene.add(m);
+  });
+  for (let i = 0; i < 40; i++) {
+    const a = Math.random()*Math.PI*2, d = 60+Math.random()*80;
+    const tG = new THREE.Group();
+    const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.2,0.3,2.5,6), trunkMat);
+    trunk.position.y = 1.25; tG.add(trunk);
+    const leaves = new THREE.Mesh(new THREE.SphereGeometry(1.2+Math.random()*.5,7,7), leafMat);
+    leaves.position.y = 3.2; tG.add(leaves);
+    tG.position.set(Math.cos(a)*d, 0, Math.sin(a)*d);
+    scene.add(tG);
+  }
+  const sf = new THREE.Mesh(new THREE.PlaneGeometry(8,1.5), new THREE.MeshLambertMaterial({color:0xffffff}));
+  sf.rotation.x = -Math.PI/2; sf.position.set(0, 0.03, -25*SCALE-.5); scene.add(sf);
+})();
+
+// ── Road (rebuilt when radius changes) ──────────
+let roadMesh, trackLine, limitLine, coneGroup;
+let roadDashes = [];
+function buildRoad() {
+  [roadMesh, trackLine, limitLine, coneGroup].forEach(o => { if (o) scene.remove(o); });
+  roadDashes.forEach(d => scene.remove(d)); roadDashes = [];
+
+  const R = state.radius * SCALE, roadW = 8;
+  roadMesh = new THREE.Mesh(
+    new THREE.RingGeometry(R - roadW/2, R + roadW/2, 128),
+    new THREE.MeshLambertMaterial({ color:0x2d3748, side:THREE.DoubleSide })
+  );
+  roadMesh.rotation.x = -Math.PI/2; roadMesh.position.y = 0.01; roadMesh.receiveShadow = true;
+  scene.add(roadMesh);
+
+  const ring = (r, col, op) => {
+    const pts = [];
+    for (let i = 0; i <= 128; i++) { const a=(i/128)*Math.PI*2; pts.push(new THREE.Vector3(Math.cos(a)*r, 0.05, Math.sin(a)*r)); }
+    return new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts),
+      new THREE.LineBasicMaterial({ color:col, opacity:op, transparent:true }));
+  };
+  trackLine = ring(R, 0xffffff, 0.3); scene.add(trackLine);
+  limitLine = ring(R, 0xa78bfa, 0.6); limitLine.position.y = 0.03; scene.add(limitLine);
+
+  for (let i = 0; i < 36; i++) {
+    if (i % 3 === 0) continue;
+    const pts = [];
+    for (let j = 0; j <= 6; j++) { const a=((i+j*.8/6)/36)*Math.PI*2; pts.push(new THREE.Vector3(Math.cos(a)*R, 0.04, Math.sin(a)*R)); }
+    const d = new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts),
+      new THREE.LineBasicMaterial({color:0xffffff,opacity:.5,transparent:true}));
+    scene.add(d); roadDashes.push(d);
+  }
+
+  coneGroup = new THREE.Group();
+  const cGeo = new THREE.ConeGeometry(0.3, 1.2, 6);
+  for (let i = 0; i < 48; i++) {
+    const a = (i/48)*Math.PI*2;
+    [[R+roadW/2+1, 0xff6600],[R-roadW/2-1, 0xff2200]].forEach(([r,col]) => {
+      const c = new THREE.Mesh(cGeo, new THREE.MeshLambertMaterial({color:col}));
+      c.position.set(Math.cos(a)*r, 0.6, Math.sin(a)*r); c.castShadow = true; coneGroup.add(c);
+    });
+  }
+  scene.add(coneGroup);
+}
+
+// ── Car ─────────────────────────────────────────
+let carObj, carBody, carBodyMesh;
+let wheelFL, wheelFR, wheelRL, wheelRR;
+let wheelGroupFL, wheelGroupFR; // front wheel groups for steering rotation
+let wheelRot = 0;
+
+function buildCar() {
+  if (carObj) scene.remove(carObj);
+  carObj = new THREE.Group();
+
+  // Body
+  const bodyMat = new THREE.MeshPhongMaterial({ color:0x1a7fd4, shininess:120, specular:0x88aaff });
+  carBodyMesh = new THREE.Mesh(new THREE.BoxGeometry(1.8, 0.6, 3.6), bodyMat);
+  carBodyMesh.position.y = 0.6; carBodyMesh.castShadow = true;
+  carObj.add(carBodyMesh);
+  carBody = carBodyMesh; // alias
+
+  // Roof
+  const roof = new THREE.Mesh(new THREE.BoxGeometry(1.5,0.45,2.0),
+    new THREE.MeshPhongMaterial({color:0x0f5fa8,shininess:80}));
+  roof.position.set(0,1.12,-0.2); roof.castShadow = true; carObj.add(roof);
+
+  // Windshield
+  const wind = new THREE.Mesh(new THREE.PlaneGeometry(1.4,0.4),
+    new THREE.MeshPhongMaterial({color:0x88ccff,opacity:0.6,transparent:true,side:THREE.DoubleSide}));
+  wind.position.set(0,1.05,0.81); wind.rotation.x = -0.35; carObj.add(wind);
+
+  // Headlights
+  [-0.6,0.6].forEach(x => {
+    const hl = new THREE.Mesh(new THREE.SphereGeometry(0.12,8,8),
+      new THREE.MeshPhongMaterial({color:0xffffee,emissive:0xffffcc,emissiveIntensity:0.8}));
+    hl.position.set(x,0.6,1.8); carObj.add(hl);
+  });
+
+  // Wheels
+  const wGeo = new THREE.CylinderGeometry(0.35,0.35,0.25,16);
+  const wMat = new THREE.MeshPhongMaterial({color:0x1a1a1a});
+  const rGeo = new THREE.CylinderGeometry(0.18,0.18,0.26,8);
+  const rMat = new THREE.MeshPhongMaterial({color:0xaaaaaa,shininess:150});
+
+  function makeWheel(px, py, pz, isFront) {
+    // Outer pivot group (for steering yaw)
+    const pivot = new THREE.Group();
+    pivot.position.set(px, py, pz);
+    const wg = new THREE.Group(); // spin group
+    const w   = new THREE.Mesh(wGeo, wMat); w.rotation.z = Math.PI/2; wg.add(w);
+    const rim = new THREE.Mesh(rGeo, rMat); rim.rotation.z = Math.PI/2; wg.add(rim);
+    pivot.add(wg);
+    carObj.add(pivot);
+    return { pivot, spin: wg };
+  }
+
+  const wFL = makeWheel(-1.1, 0.35,  1.2, true);
+  const wFR = makeWheel( 1.1, 0.35,  1.2, true);
+  const wRL = makeWheel(-1.1, 0.35, -1.2, false);
+  const wRR = makeWheel( 1.1, 0.35, -1.2, false);
+
+  wheelFL = wFL; wheelFR = wFR; wheelRL = wRL; wheelRR = wRR;
+
+  scene.add(carObj);
+}
+
+// ── Arrows ──────────────────────────────────────
+let arrowGroup, arrowCentripetal, arrowCentrifugal, arrowVelocity;
+function makeArrow(color) {
+  const g = new THREE.Group();
+  const lineGeo = new THREE.BufferGeometry();
+  lineGeo.setAttribute('position', new THREE.Float32BufferAttribute([0,0,0, 0,0,1], 3));
+  const line = new THREE.Line(lineGeo, new THREE.LineBasicMaterial({color, linewidth:2}));
+  g.add(line);
+  const head = new THREE.Mesh(new THREE.ConeGeometry(0.18,0.55,8),
+    new THREE.MeshLambertMaterial({color}));
+  head.position.z = 1; head.rotation.x = Math.PI/2;
+  g.add(head);
+  g._line = line; g._head = head;
+  return g;
+}
+function setArrow(arrow, origin, dir, len) {
+  arrow.position.set(origin.x, 1.2, origin.z);
+  if (dir.length() > 0.001) arrow.lookAt(origin.x+dir.x, 1.2, origin.z+dir.z);
+  const pos = arrow._line.geometry.attributes.position;
+  pos.setXYZ(1, 0, 0, len); pos.needsUpdate = true;
+  arrow._head.position.z = len + 0.27;
+  arrow._line.geometry.computeBoundingSphere();
+}
+function buildArrows() {
+  if (arrowGroup) scene.remove(arrowGroup);
+  arrowGroup = new THREE.Group();
+  arrowCentripetal = makeArrow(0x38bdf8);
+  arrowCentrifugal = makeArrow(0xfb923c);
+  arrowVelocity    = makeArrow(0xfacc15);
+  arrowGroup.add(arrowCentripetal, arrowCentrifugal, arrowVelocity);
+  scene.add(arrowGroup);
+}
+
+// ── Skid / Smoke ─────────────────────────────────
+let skidGroup, skidParticles = [];
+let smokeGroup, smokeParticles = [];
+function buildParticleSystems() {
+  if (skidGroup)  scene.remove(skidGroup);
+  if (smokeGroup) scene.remove(smokeGroup);
+  skidGroup = new THREE.Group(); scene.add(skidGroup); skidParticles = [];
+  smokeGroup= new THREE.Group(); scene.add(smokeGroup); smokeParticles= [];
+}
+function addSkid(pos) {
+  if (skidParticles.length > 300) { skidGroup.remove(skidParticles.shift()); }
+  const m = new THREE.Mesh(new THREE.CircleGeometry(.3+Math.random()*.2,6),
+    new THREE.MeshBasicMaterial({color:0x111111,opacity:.7,transparent:true}));
+  m.rotation.x = -Math.PI/2; m.position.set(pos.x, 0.02, pos.z);
+  skidGroup.add(m); skidParticles.push(m);
+}
+function addSmoke(pos) {
+  if (smokeParticles.length > 60) { smokeGroup.remove(smokeParticles.shift()); }
+  const m = new THREE.Mesh(new THREE.SphereGeometry(.3+Math.random()*.5,6,6),
+    new THREE.MeshBasicMaterial({color:0x888888,opacity:.4,transparent:true}));
+  m.position.set(pos.x+(Math.random()-.5), .5+Math.random()*.5, pos.z+(Math.random()-.5));
+  m._life = 1.0; m._vy = .02+Math.random()*.02;
+  smokeGroup.add(m); smokeParticles.push(m);
+}
+
+// Init
+buildRoad(); buildCar(); buildArrows(); buildParticleSystems();
+
+// ═══════════════════════════════════════════════
+// Physics
+// ═══════════════════════════════════════════════
+function computePhysics() {
+  const { speed, radius, mu, mass } = state;
+  const Fc    = mass * speed * speed / radius;
+  const Ff    = mu * mass * G_CONST;
+  const ac    = speed * speed / radius;
+  const vmax  = Math.sqrt(mu * G_CONST * radius);
+  const ratio = Fc / Ff;
+  const isOff = Fc > Ff;
+  return { Fc, Ff, ac, vmax, ratio, isOff };
+}
+
+// Ackermann steering angle: δ = atan(L / R)  [rad]
+// Real steering wheel typically ×15–20 gear ratio, capped ±540°
+function computeSteerAngle() {
+  if (state.isOff) return 0;
+  const rad = Math.atan(WHEELBASE / state.radius); // front-wheel angle (rad)
+  return THREE.MathUtils.radToDeg(rad);             // degrees
+}
+
+// ═══════════════════════════════════════════════
+// Steering wheel 2D canvas
+// ═══════════════════════════════════════════════
+const swCvs = document.getElementById('steer-wheel-canvas');
+const swCtx = swCvs.getContext('2d');
+function drawSteeringWheel(angleDeg) {
+  const cx = 45, cy = 45, r = 38;
+  swCtx.clearRect(0,0,90,90);
+  swCtx.save();
+  swCtx.translate(cx, cy);
+  // Max steering wheel rotation = front angle * gear ratio (17)
+  const gearRatio = 17;
+  const swAngle = THREE.MathUtils.degToRad(angleDeg * gearRatio);
+  swCtx.rotate(swAngle);
+
+  // Rim
+  swCtx.beginPath(); swCtx.arc(0,0,r,0,Math.PI*2);
+  swCtx.strokeStyle = '#7dd3fc'; swCtx.lineWidth = 4; swCtx.stroke();
+
+  // Spokes
+  [[0,-r],[0,r],[-r,0],[r,0]].forEach(([x,y]) => {
+    swCtx.beginPath(); swCtx.moveTo(0,0); swCtx.lineTo(x*.7,y*.7);
+    swCtx.strokeStyle='#7dd3fc'; swCtx.lineWidth=3; swCtx.stroke();
+  });
+  // Hub
+  swCtx.beginPath(); swCtx.arc(0,0,6,0,Math.PI*2);
+  swCtx.fillStyle='#38bdf8'; swCtx.fill();
+  // Top marker (12-o'clock indicator, fixed)
+  swCtx.restore();
+  swCtx.beginPath(); swCtx.arc(cx, cy-r+6, 3, 0, Math.PI*2);
+  swCtx.fillStyle='rgba(255,255,255,0.25)'; swCtx.fill();
+}
+
+// ═══════════════════════════════════════════════
+// HUD update
+// ═══════════════════════════════════════════════
+function updateHUD(phys) {
+  const { Fc, Ff, ac, vmax, ratio, isOff } = phys;
+  document.getElementById('pv').textContent    = state.speed.toFixed(1) + ' m/s';
+  document.getElementById('pr').textContent    = state.radius.toFixed(0) + ' m';
+  document.getElementById('pfc').textContent   = Fc.toFixed(0) + ' N';
+  document.getElementById('pff').textContent   = Ff.toFixed(0) + ' N';
+  document.getElementById('pac').textContent   = (ac/G_CONST).toFixed(2) + ' g';
+  document.getElementById('pvmax').textContent = vmax.toFixed(1) + ' m/s';
+  document.getElementById('dial-spd').textContent = state.speed.toFixed(1);
+  document.getElementById('g-val').textContent = (ac/G_CONST).toFixed(2) + ' g';
+
+  const pct = Math.min(ratio*100, 100);
+  const bar = document.getElementById('force-bar');
+  bar.style.width = pct + '%';
+  const pvEl = document.getElementById('pv');
+  if (ratio < 0.7)       { bar.style.background='#4ade80'; pvEl.className='phys-val green'; }
+  else if (ratio < 1.0)  { bar.style.background='#facc15'; pvEl.className='phys-val yellow'; }
+  else                   { bar.style.background='#f87171'; pvEl.className='phys-val red'; }
+
+  const badge = document.getElementById('status-badge');
+  const skidEl = document.getElementById('skid-info');
+  if (!isOff) {
+    badge.style.cssText = ratio<0.7
+      ? 'background:rgba(74,222,128,0.15);border:1px solid #4ade80;color:#4ade80;margin-top:10px;padding:6px 10px;border-radius:8px;font-size:12px;font-weight:700;text-align:center;'
+      : 'background:rgba(250,204,21,0.15);border:1px solid #facc15;color:#facc15;margin-top:10px;padding:6px 10px;border-radius:8px;font-size:12px;font-weight:700;text-align:center;';
+    badge.textContent = ratio<0.7 ? '✅ 안전: 원운동 유지 중' : '⚠️ 경고: 마찰 한계 근접';
+    skidEl.style.display = 'none';
+  } else {
+    badge.style.cssText = 'background:rgba(248,113,113,0.15);border:1px solid #f87171;color:#f87171;margin-top:10px;padding:6px 10px;border-radius:8px;font-size:12px;font-weight:700;text-align:center;';
+    badge.textContent = '🚨 이탈: 구심력 > 마찰력!';
+    skidEl.style.display = 'block';
+  }
+
+  // Steering angle
+  const sa = computeSteerAngle();
+  const gearRatio = 17;
+  const swDeg = sa * gearRatio;
+  // smooth
+  state.steerTarget = swDeg;
+  state.steerAngleDeg = THREE.MathUtils.lerp(state.steerAngleDeg, state.steerTarget, 0.08);
+  document.getElementById('steer-angle-val').textContent = sa.toFixed(1) + '°';
+  drawSteeringWheel(isOff ? 0 : sa);
+
+  // Apply front-wheel steering to 3D
+  const frontRad = THREE.MathUtils.degToRad(isOff ? 0 : sa);
+  if (wheelFL) wheelFL.pivot.rotation.y = -frontRad;
+  if (wheelFR) wheelFR.pivot.rotation.y = -frontRad;
+}
+
+// ═══════════════════════════════════════════════
+// FP overlay: speed lines (vignette + streaks)
+// ═══════════════════════════════════════════════
+function drawFPOverlay(phys) {
+  if (camMode !== 'fp') { fpCtx.clearRect(0,0,fpCvs.width,fpCvs.height); return; }
+  const w = fpCvs.width, h = fpCvs.height;
+  fpCtx.clearRect(0,0,w,h);
+
+  const ratio = Math.min(state.speed / 30, 1.0);
+
+  // Vignette
+  const vign = fpCtx.createRadialGradient(w/2,h/2,h*.25, w/2,h/2,h*.75);
+  vign.addColorStop(0, 'rgba(0,0,0,0)');
+  vign.addColorStop(1, `rgba(0,0,20,${0.15 + ratio*0.35})`);
+  fpCtx.fillStyle = vign; fpCtx.fillRect(0,0,w,h);
+
+  // Speed streaks
+  if (ratio > 0.2) {
+    fpCtx.save();
+    const streakCount = Math.floor(ratio * 40);
+    for (let i = 0; i < streakCount; i++) {
+      const x = Math.random()*w, y = Math.random()*h;
+      const len = 20 + ratio * 80;
+      const alpha = (0.03 + ratio*0.08) * Math.random();
+      const grad = fpCtx.createLinearGradient(x-len/2,y, x+len/2,y);
+      grad.addColorStop(0,'rgba(255,255,255,0)');
+      grad.addColorStop(0.5,`rgba(180,220,255,${alpha})`);
+      grad.addColorStop(1,'rgba(255,255,255,0)');
+      fpCtx.strokeStyle = grad;
+      fpCtx.lineWidth = 0.5 + Math.random();
+      fpCtx.beginPath(); fpCtx.moveTo(x-len/2,y); fpCtx.lineTo(x+len/2,y);
+      fpCtx.stroke();
+    }
+    fpCtx.restore();
+  }
+
+  // Lateral G indicator bar (left side)
+  const gVal = phys.ac / G_CONST;
+  const barH = h * 0.3, barW = 8;
+  const barX = 30, barY = h/2 - barH/2;
+  fpCtx.fillStyle = 'rgba(167,139,250,0.15)';
+  fpCtx.fillRect(barX, barY, barW, barH);
+  const fillH = Math.min(gVal / 1.5, 1.0) * barH;
+  const gColor = gVal < 0.7 ? '#4ade80' : gVal < 1.0 ? '#facc15' : '#f87171';
+  fpCtx.fillStyle = gColor;
+  fpCtx.fillRect(barX, barY + barH - fillH, barW, fillH);
+  fpCtx.fillStyle = 'rgba(167,139,250,0.7)';
+  fpCtx.font = '10px Segoe UI';
+  fpCtx.fillText('G', barX+1, barY-4);
+
+  // Off-track red flash
+  if (phys.isOff) {
+    fpCtx.fillStyle = `rgba(220,38,38,${0.15 + 0.15*Math.sin(state.t*8)})`;
+    fpCtx.fillRect(0,0,w,h);
+  }
+}
+
+// ═══════════════════════════════════════════════
+// Animation loop
+// ═══════════════════════════════════════════════
+const clock = new THREE.Clock();
+
+function animate() {
+  requestAnimationFrame(animate);
+  const dt = Math.min(clock.getDelta(), 0.05);
+  state.t += dt;
+
+  if (state.autoAccel) {
+    state.speed = Math.min(state.speed + 0.8*dt, 40);
+    document.getElementById('sv').value = state.speed;
+    document.getElementById('lv').textContent = state.speed.toFixed(1) + ' m/s';
+  }
+
+  const phys = computePhysics();
+  const R = state.radius * SCALE;
+
+  // ── Position update ──────────────────────────
+  if (!state.isOff) {
+    if (phys.isOff) {
+      state.isOff = true;
+      state.offPos = new THREE.Vector3(Math.cos(state.angle)*R, 0, Math.sin(state.angle)*R);
+      state.offVelDir = new THREE.Vector3(-Math.sin(state.angle), 0, Math.cos(state.angle)).normalize();
+      state.offSpeed = state.speed * SCALE;
+    } else {
+      const omega = (state.speed * SCALE) / R;
+      state.angle += omega * dt;
+      if (state.angle > Math.PI*2) state.angle -= Math.PI*2;
+    }
+  } else {
+    const decel = state.mu * G_CONST * SCALE * dt;
+    state.offSpeed = Math.max(0, state.offSpeed - decel);
+    state.offPos.x += state.offVelDir.x * state.offSpeed * dt;
+    state.offPos.z += state.offVelDir.z * state.offSpeed * dt;
+    const out = state.offPos.clone().normalize();
+    state.offPos.x += out.x * 0.5 * dt;
+    state.offPos.z += out.z * 0.5 * dt;
+  }
+
+  // ── Car transform ────────────────────────────
+  let carPos = new THREE.Vector3();
+  let carYaw  = 0; // car's world-space yaw
+
+  if (!state.isOff) {
+    carPos.set(Math.cos(state.angle)*R, 0, Math.sin(state.angle)*R);
+    // CCW tangent direction → yaw angle
+    carYaw = state.angle + Math.PI/2;
+  } else {
+    carPos.copy(state.offPos);
+    if (state.offVelDir)
+      carYaw = Math.atan2(state.offVelDir.x, state.offVelDir.z);
+  }
+
+  if (carObj) {
+    carObj.position.set(carPos.x, 0, carPos.z);
+    carObj.rotation.y = -carYaw;
+
+    // Body roll: outward lean proportional to lateral-g
+    const rollRatio = Math.min(phys.ac / G_CONST, 1.5);
+    const targetRoll = state.isOff ? 0.25 : -0.12 * rollRatio;
+    carBody.rotation.z = THREE.MathUtils.lerp(carBody.rotation.z, targetRoll, 0.1);
+
+    // Wheel spin
+    wheelRot += state.speed * SCALE * dt * 2;
+    [wheelFL, wheelFR, wheelRL, wheelRR].forEach(w => {
+      w.spin.rotation.x = wheelRot;
+    });
+
+    // Particles
+    if (state.isOff || phys.ratio > 0.85) {
+      if (Math.random() < 0.3) addSkid(carPos);
+      if (state.isOff && Math.random() < 0.4) addSmoke(carPos);
+    }
+
+    carBody.material.color.setHex(state.isOff ? 0xd43a1a : (phys.ratio>0.85 ? 0xd4a01a : 0x1a7fd4));
+  }
+
+  // Smoke life
+  smokeParticles.forEach(s => {
+    s.position.y += s._vy;
+    s._life -= 0.015;
+    s.material.opacity = Math.max(0, s._life * 0.4);
+    s.scale.setScalar(1+(1-s._life)*2);
+  });
+
+  // ── Arrows ───────────────────────────────────
+  const toCtr   = new THREE.Vector3(-Math.cos(state.angle), 0, -Math.sin(state.angle));
+  const fcScale = Math.min(phys.Fc/800, 12);
+  const velDir  = new THREE.Vector3(-Math.sin(state.angle), 0, Math.cos(state.angle)).normalize();
+  const vScale  = Math.min(state.speed*SCALE*.5, 12);
+  setArrow(arrowCentripetal, carPos, toCtr,           fcScale);
+  setArrow(arrowCentrifugal, carPos, toCtr.clone().negate(), fcScale);
+  setArrow(arrowVelocity,    carPos, velDir,           vScale);
+
+  // Limit line pulse
+  if (limitLine) limitLine.material.opacity = 0.4 + 0.3*Math.sin(state.t*3);
+
+  // ── Camera ───────────────────────────────────
+  updateCamera(carPos, carYaw);
+
+  // ── HUD & Overlays ───────────────────────────
+  updateHUD(phys);
+  drawFPOverlay(phys);
+
+  renderer.render(scene, camera);
+}
+
+// ═══════════════════════════════════════════════
+// Camera
+// ═══════════════════════════════════════════════
+// Smooth chase cam position
+let chaseCamPos = new THREE.Vector3(0, 4, 8);
+
+function updateCamera(carPos, carYaw) {
+  if (camMode === 'top') {
+    // ── Top-down ──────────────────────────────
+    const baseH = Math.max(state.radius * SCALE * 2.2, 80);
+    const H = baseH * zoomTop;
+    camera.position.set(0, H, 0);
+    camera.lookAt(new THREE.Vector3(0, 0, 0));
+    camera.up.set(0, 0, -1);
+
+  } else if (camMode === 'chase') {
+    // ── Chase cam ─────────────────────────────
+    const baseDist = 8, baseH = 4;
+    const dist = baseDist * zoomChase, hgt = baseH * zoomChase;
+    // Behind car in world space
+    const bx = carPos.x + Math.sin(carYaw) * dist;
+    const bz = carPos.z + Math.cos(carYaw) * dist;
+    const target = new THREE.Vector3(bx, hgt, bz);
+    chaseCamPos.lerp(target, 0.12);
+    camera.position.copy(chaseCamPos);
+    const lookTgt = new THREE.Vector3(
+      carPos.x - Math.sin(carYaw)*3,
+      1.2,
+      carPos.z - Math.cos(carYaw)*3
+    );
+    camera.lookAt(lookTgt);
+    camera.up.set(0, 1, 0);
+
+  } else if (camMode === 'fp') {
+    // ── 1st-person: FIXED FORWARD, no rotation ─
+    // Camera sits in cockpit, always looks along the car's heading
+    const cockpitOffset = new THREE.Vector3(0, 1.55, 0.6); // local offset
+    // Rotate offset into world space using car's yaw only
+    const sinY = Math.sin(-carYaw), cosY = Math.cos(-carYaw);
+    const wx = cockpitOffset.x * cosY - cockpitOffset.z * sinY;
+    const wz = cockpitOffset.x * sinY + cockpitOffset.z * cosY;
+
+    camera.position.set(carPos.x + wx, cockpitOffset.y, carPos.z + wz);
+
+    // Look forward along car's heading (tangent direction)
+    const fwdX = -Math.sin(carYaw);
+    const fwdZ = -Math.cos(carYaw);
+    camera.lookAt(new THREE.Vector3(
+      carPos.x + wx + fwdX * 20,
+      cockpitOffset.y - 0.2,
+      carPos.z + wz + fwdZ * 20
+    ));
+    camera.up.set(0, 1, 0);
+  }
+}
+
+// ═══════════════════════════════════════════════
+// Zoom (mouse wheel) — only for top & chase
+// ═══════════════════════════════════════════════
+window.addEventListener('wheel', e => {
+  if (camMode === 'fp') return; // no zoom in FP
+  e.preventDefault();
+  const delta = e.deltaY > 0 ? 1.12 : 0.89;
+  if (camMode === 'top') {
+    zoomTop = Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, zoomTop * delta));
+  } else if (camMode === 'chase') {
+    zoomChase = Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, zoomChase * delta));
+  }
+}, { passive: false });
+
+// ── Touch pinch zoom ─────────────────────────────
+let lastPinchDist = null;
+window.addEventListener('touchstart', e => { if (e.touches.length === 2) lastPinchDist = null; }, {passive:true});
+window.addEventListener('touchmove', e => {
+  if (e.touches.length !== 2 || camMode === 'fp') return;
+  const dx = e.touches[0].clientX - e.touches[1].clientX;
+  const dy = e.touches[0].clientY - e.touches[1].clientY;
+  const dist = Math.sqrt(dx*dx + dy*dy);
+  if (lastPinchDist !== null) {
+    const scale = lastPinchDist / dist; // > 1 = pinch-in = zoom out
+    if (camMode === 'top')   zoomTop   = Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, zoomTop   * scale));
+    if (camMode === 'chase') zoomChase = Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, zoomChase * scale));
+  }
+  lastPinchDist = dist;
+}, {passive:true});
+
+// ═══════════════════════════════════════════════
+// Controls
+// ═══════════════════════════════════════════════
+function syncSlider(id, val) {
+  const el = document.getElementById(id);
+  if (el) el.value = val;
+}
+function resetIfNeeded() {
+  if (!computePhysics().isOff && state.isOff) resetCar();
+}
+
+document.getElementById('sv').addEventListener('input', e => {
+  state.speed = parseFloat(e.target.value);
+  document.getElementById('lv').textContent = state.speed.toFixed(1)+' m/s';
+  resetIfNeeded();
+});
+document.getElementById('sr').addEventListener('input', e => {
+  state.radius = parseFloat(e.target.value);
+  document.getElementById('lr').textContent = state.radius.toFixed(0)+' m';
+  buildRoad(); resetIfNeeded();
+});
+document.getElementById('smu').addEventListener('input', e => {
+  state.mu = parseFloat(e.target.value);
+  document.getElementById('lmu').textContent = state.mu.toFixed(2);
+  resetIfNeeded();
+});
+document.getElementById('smass').addEventListener('input', e => {
+  state.mass = parseFloat(e.target.value);
+  document.getElementById('lmass').textContent = state.mass.toFixed(0)+' kg';
+  resetIfNeeded();
+});
+
+document.getElementById('btn-reset').addEventListener('click', resetCar);
+document.getElementById('btn-auto').addEventListener('click', () => {
+  state.autoAccel = !state.autoAccel;
+  const btn = document.getElementById('btn-auto');
+  if (state.autoAccel) {
+    btn.textContent='⏹ 정지'; btn.style.color='#f87171'; btn.style.borderColor='rgba(248,113,113,0.4)';
+  } else {
+    btn.textContent='▶ 속도증가'; btn.style.color='#fb923c'; btn.style.borderColor='rgba(251,146,60,0.4)';
+    syncSlider('sv', state.speed);
+    document.getElementById('lv').textContent = state.speed.toFixed(1)+' m/s';
+  }
+});
+
+function resetCar() {
+  state.isOff=false; state.angle=0; state.offPos=null; state.offVelDir=null; state.offSpeed=0;
+  state.autoAccel=false;
+  document.getElementById('btn-auto').textContent='▶ 속도증가';
+  document.getElementById('btn-auto').style.color='#fb923c';
+  document.getElementById('btn-auto').style.borderColor='rgba(251,146,60,0.4)';
+  skidParticles.forEach(s=>skidGroup.remove(s)); skidParticles=[];
+  smokeParticles.forEach(s=>smokeGroup.remove(s)); smokeParticles=[];
+  zoomTop=1.0; zoomChase=1.0;
+}
+
+// Camera buttons
+document.querySelectorAll('.cam-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    camMode = btn.dataset.cam;
+    document.querySelectorAll('.cam-btn').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    const labels = { top:'🛸 탑뷰 (위에서)', chase:'🎮 카트뷰 (뒤에서)', fp:'👁️ 1인칭 운전자 시점' };
+    document.getElementById('view-label').textContent = '📷 시점: ' + labels[camMode];
+    // Show/hide FP-only elements
+    const isFP = camMode === 'fp';
+    document.getElementById('crosshair').style.display = isFP ? 'block' : 'none';
+    document.getElementById('g-meter').style.display   = isFP ? 'block' : 'none';
+    document.getElementById('zoom-hint').style.opacity = isFP ? '0' : '1';
+    // FP: hide arrows (they clutter 1st-person view)
+    if (arrowGroup) arrowGroup.visible = !isFP;
+    if (camMode !== 'top') camera.up.set(0,1,0);
+    else camera.up.set(0,0,-1);
+    // Reset chase lerp
+    if (camMode === 'chase') chaseCamPos.set(0, 4, 8);
+    // Reset zoom
+    zoomTop=1.0; zoomChase=1.0;
+  });
+});
+
+// Keyboard
+document.addEventListener('keydown', e => {
+  if (e.key === 'v' || e.key === 'V') {
+    const modes = ['top','chase','fp'];
+    document.querySelector(`[data-cam="${modes[(modes.indexOf(camMode)+1)%3]}"]`).click();
+  }
+  if (e.key === 'r' || e.key === 'R') resetCar();
+  if (e.key === ' ') { e.preventDefault(); document.getElementById('btn-auto').click(); }
+  if (e.key === 'ArrowUp') {
+    state.speed = Math.min(state.speed+0.5, 40);
+    syncSlider('sv', state.speed);
+    document.getElementById('lv').textContent = state.speed.toFixed(1)+' m/s';
+    resetIfNeeded();
+  }
+  if (e.key === 'ArrowDown') {
+    state.speed = Math.max(state.speed-0.5, 2);
+    syncSlider('sv', state.speed);
+    document.getElementById('lv').textContent = state.speed.toFixed(1)+' m/s';
+    resetIfNeeded();
+  }
+});
+
+animate();
+</script>
+</body>
+</html>
